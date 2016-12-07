@@ -1,0 +1,61 @@
+config:
+  # the VIRL host
+  host: 172.23.175.92
+  # username and password
+  user: guest
+  password: guest
+  # loglevel (0-4, 4=Debug)
+  loglevel: 2
+  # max parallel simulations
+  parallel: 4
+  # default wait time (spinup / packet capture)
+  wait: 300
+
+
+sims:
+- topo: ~/Downloads/test-LtfPFU.virl
+  wait: 600
+  nodes:
+  - nx-osv9000-1:
+    - type: filter
+      # should run in background?
+      background: yes
+      # maximum time for capture to finish
+      wait: 300
+      # amount of packets to capture
+      count: 25
+      # missing or empty filter: all packets
+      pcap: icmp
+      # mandatory interface
+      intfc: Ethernet1/1
+  - nx-osv9000-2:
+    - type: filter
+      # should run in background?
+      background: yes
+      # maximum time for capture to finish
+      wait: 300
+      # amount of packets to capture
+      count: 25
+      # missing or empty filter: all packets
+      pcap: icmp
+      # mandatory interface
+      intfc: Ethernet1/1
+
+
+  - nx-osv9000-1:
+    - type: command
+      background: yes
+      #sleep: 5
+      wait: 5
+      in: 
+      - term len 0
+      - show version
+      - ping 10.0.0.6 count 50
+      out: 50 packets received
+  - nx-osv9000-2:
+    - type: command
+      #background: yes
+      sleep: 10
+      wait: 5
+      in: ping 10.0.0.5 count 50
+      out: 0.00% packet loss

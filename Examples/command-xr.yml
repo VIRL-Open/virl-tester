@@ -1,0 +1,62 @@
+config:
+  # the VIRL host
+  host: 172.23.175.92
+  # username and password
+  user: guest
+  password: guest
+  # loglevel (0-4, 4=Debug)
+  loglevel: 2
+  # max parallel simulations
+  parallel: 4
+  # default wait time (spinup / packet capture)
+  wait: 300
+
+
+sims:
+- topo: ~/Downloads/8node-iosxrv.virl
+  wait: 1800
+  nodes:
+  - ios_xrv-1:
+    - type: command
+      background: yes
+      # need bit of time for BGP to sync
+      sleep: 120
+      #wait: 5
+      in: 
+      #- term len 0
+      #- show version
+      - ping 192.168.0.11 repeat 50
+      out: rate is 100 percent
+  - ios_xrv-7:
+    - type: filter
+      # should run in background?
+      background: yes
+      # maximum time for capture to finish
+      wait: 300
+      # amount of packets to capture
+      count: 60
+      # missing or empty filter: all packets
+      #pcap: icmp
+      # mandatory interface
+      intfc: GigabitEthernet0/0/0/0
+    - type: filter
+      # should run in background?
+      background: yes
+      # maximum time for capture to finish
+      wait: 300
+      # amount of packets to capture
+      count: 20
+      # missing or empty filter: all packets
+      #pcap: icmp
+      # mandatory interface
+      intfc: GigabitEthernet0/0/0/1
+    - type: command
+      background: yes
+      sleep: 5
+      #wait: 5
+      in: 
+      #- term len 0
+      #- show version
+      - ping 192.168.0.2 repeat 50
+      out: rate is 100 percent
+

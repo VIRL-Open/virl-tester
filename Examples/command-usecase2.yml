@@ -1,0 +1,46 @@
+config:
+  # the VIRL host
+  host: 172.23.175.92
+  # username and password
+  user: guest
+  password: guest
+  # loglevel (0-4, 4=Debug)
+  loglevel: 2
+  # max parallel simulations
+  parallel: 4
+  # default wait time (spinup / packet capture)
+  wait: 300
+
+
+sims:
+- topo: ~/Downloads/4node-iosv.virl
+  wait: 1800
+  nodes:
+  - iosv-1:
+    - type: filter
+      # should run in background?
+      background: yes
+      # initial sleep before action starts
+      sleep: 20
+      # maximum time for capture to finish
+      wait: 300
+      # amount of packets to capture
+      count: 10
+      # missing or empty filter: all packets
+      #pcap: ''
+      # mandatory interface
+      intfc: GigabitEthernet0/2
+    - type: command
+      sleep: 10
+      wait: 60
+      in: ping 10.255.0.1
+      out: 5 packets received
+
+  - iosv-2:
+    - type: filter
+      count: 10
+      intfc: GigabitEthernet0/2
+      # pcap: icmp
+    - type: command
+      in: ping 10.0.0.2 vrf Mgmt-intf
+      out: 5 packets received
