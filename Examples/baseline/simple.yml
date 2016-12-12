@@ -1,0 +1,46 @@
+config:
+  # the VIRL host
+  host: 172.23.175.92
+  # username and password
+  user: guest
+  password: guest
+  # loglevel (0-4, 4=Debug)
+  loglevel: 2
+  # max parallel simulations
+  parallel: 1
+  # default wait time (spinup / packet capture)
+  wait: 300
+
+
+sims:
+- topo: simple-lxc-iol-l2.virl
+  wait: 300
+  skip: no
+  nodes:
+
+  # end to end ping going through
+  # two switches with trunk
+  - lxc-sshd-1:
+    - type: command
+      transport: ssh
+      logic: one
+      background: yes
+      # don't log output:
+      # log: no
+      sleep: 30
+      wait: 10
+      in: 'ping -c50 -i.2 10.0.0.6'
+      out: '0% packet loss'
+
+  - lxc-sshd-2:
+    - type: command
+      transport: ssh
+      logic: one
+      background: yes
+      # don't log output:
+      # log: no
+      sleep: 0
+      wait: 10
+      in: 'ping -c50 -i.2 10.0.0.5'
+      out: '0% packet loss'
+
