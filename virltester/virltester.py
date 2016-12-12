@@ -6,11 +6,13 @@ from .sample_file import writeCommandSample
 from .virl import VIRLSim
 
 import logging
-from logging import DEBUG, INFO, WARN, ERROR, CRITICAL
 import argparse
+import os
 import textwrap
 import threading
 import yaml
+
+from logging import DEBUG, INFO, WARN, ERROR, CRITICAL
 from time import sleep
 
 # default for wait time in seconds
@@ -39,7 +41,7 @@ def doCaptureAction(virl, name, action):
     wait = action.get('wait', None)
 
     # this stuff probably should all go into an Action class
-    seq = action['seq']
+    seq = action['_seq']
     bg = action.get('background', False)
     bg_indicator = '*' if bg else ''
     virl.log(WARN, '(%s%d) filter: %s %s', bg_indicator, seq, name, intfc)
@@ -50,17 +52,20 @@ def doCaptureAction(virl, name, action):
     if capId is not None and virl.waitForCapture(capId, wait):
         ok = virl.downloadCapture(capId)
         virl.deleteCapture(capId)
-    virl.log(WARN, "(%d) capture succeeded: %s", action['seq'], ok)
+    level = WARN if ok else ERROR
+    virl.log(level, "(%d) capture succeeded: %s", action['_seq'], ok)
     action['success'] = ok
 
 
 def doCommandAction(virl, name, action, log_output):
+    transport = action.get('transport', 'telnet')
+    logic = action.get('logic', 'one')  # RE match: match once or all
     in_cmd = action.get('in')
     out_re = action.get('out')
     wait = action.get('wait', 5)
 
     # this stuff probably should all go into an Action class
-    seq = action['seq']
+    seq = action['_seq']
     bg = action.get('background', False)
     bg_indicator = '*' if bg else ''
     virl.log(WARN, '(%s%d) command: %s %s', bg_indicator, seq, name, in_cmd)
@@ -74,20 +79,23 @@ def doCommandAction(virl, name, action, log_output):
     else:
         logname = None
     if port is not None:
-        ok = interaction(virl, logname, port, address, in_cmd, out_re, wait)
-    virl.log(WARN, "(%d) command succeeded: %s", action['seq'], ok)
+        ok = interaction(virl, logname, port, address, transport,
+                         in_cmd, out_re, logic, wait)
+    level = WARN if ok else ERROR
+    virl.log(level, "(%d) command succeeded: %s", action['_seq'], ok)
     action['success'] = ok
 
 
-#def doAction(func, threads, virl, name, action, log_output):
 def doAction(func, threads, virl, name, action, *args):
-    if not action.get('background', False):
-        func(virl, name, action, *args)
-    else:
-        t = threading.Thread(target=func, args=(virl, name, action, args))
+    background = action.get('background', False)
+    if background:
+        new_args = [virl, name, action] + list(args)
+        t = threading.Thread(target=func, args=new_args)
         t.daemon = True
         threads.append(t)
         t.start()
+    else:
+        func(virl, name, action, *args)
 
 
 def doSim(virl, sim):
@@ -103,9 +111,9 @@ def doSim(virl, sim):
                     for action in actions:
                         n += 1
                         action_type = action.get('type', '<not set>')
-                        action['seq'] = n
+                        action['_seq'] = n
                         if action_type == 'filter':
-                            doAction(doCaptureAction, threads, virl, 
+                            doAction(doCaptureAction, threads, virl,
                                      name, action)
                             continue
 
@@ -118,7 +126,7 @@ def doSim(virl, sim):
                         virl.log(CRITICAL, 'unknown action %s' % action_type)
             # wait for all action threads to stop
             if len(threads) > 0:
-                virl.log(WARN, 'waiting for backround tasks to finish')
+                virl.log(WARN, 'waiting for background actions to finish')
                 for thread in threads:
                     thread.join()
             ok = True
@@ -149,14 +157,16 @@ def doAllSims(cmdfile, args, logger):
             if sim.get('skip', False):
                 logger.warn('skipping sim %s', sim['topo'])
                 continue
+
+            # .virl files are relative to command file
+            # prepend path of command file
+            topo = os.path.join(cmdfile['_workdir'], sim['topo'])
             wait = sim.get('wait', cfg_wait)
             virl = VIRLSim(cfg['host'], cfg['user'], cfg['password'],
-                           sim['topo'], logger, timeout=wait)
-            # virl._sim_id = '8node-iosxrv-NV0k8K'
+                           topo, logger, timeout=wait)
+            # virl._sim_id = '4node-iosv-oajhLQ'
             # virl._no_start = True
-            #virl._sim_id = 'iosv-iosvl2-r4J3hY'
-            #virl._no_start = True
-            
+
             logger.warn('new thread %s', sim['topo'])
             t = threading.Thread(target=doSim, args=(virl, sim))
             t.daemon = True
@@ -174,6 +184,7 @@ def doAllSims(cmdfile, args, logger):
 
         # wait for all sims to finish
         busy = activeSims() > 0
+        logger.warning('waiting for background sims to end')
         while busy:
             sleep(BUSYWAIT)
             current = activeSims()
@@ -202,6 +213,58 @@ def doAllSims(cmdfile, args, logger):
     return total == success
 
 
+def load_yml(filename, lvl=0):
+    """load the YAML formatted command file specified by filename.
+    recursively include additional command files if the include
+    key exist (list of files)
+
+    includes:
+    - command1.yml
+    - command2.yml
+
+    the 'includes' key is removed after recursive loading is done
+    """
+    if lvl > 10:
+        raise yaml.scanner.ScannerError('recursion too deep')
+    if type(filename) is file:
+        data = yaml.load(filename)
+    else:
+        with open(filename, 'r') as f:
+            data = yaml.load(f)
+    if data.get('sims') is None:
+        data['sims'] = list()
+    for sim in data['sims']:
+        sim['topo'] = os.path.expanduser(sim['topo'])
+    includes = data.get('includes')
+    if includes is not None:
+        for include in includes:
+            curdir = os.getcwd()
+            try:
+                path = os.path.dirname(include)
+                basename = os.path.basename(include)
+                if len(path) > 0:
+                    os.chdir(path)
+                subdata = load_yml(basename, lvl + 1)
+            except (IOError, OSError) as e:
+                raise yaml.scanner.ScannerError("%s/%s: %s" % (
+                      os.getcwd(), include, e.strerror))
+            else:
+                if subdata is not None:
+                    for sim in subdata['sims']:
+                        topo = sim['topo']
+                        # if we are in a subdirectory, add the path
+                        # but only if the topo name is not absolute
+                        if not os.path.isabs(topo):
+                            sim['topo'] = os.path.join(path, topo)
+                        # make a note from where this was included
+                        sim['_source'] = include
+                        # append the sims to the parent sim list
+                        data['sims'].append(sim)
+            os.chdir(curdir)
+        del data['includes']
+    return data
+
+
 def main():
 
     description = textwrap.dedent('''\
@@ -222,7 +285,7 @@ def main():
 
     Simulations parameters are
     - topo: the topology file to use
-    - wait: the individual wait time for the sim to start 
+    - wait: the individual wait time for the sim to start
       (uses the global wait time if ommitted)
     - nodes: a list of nodes with names and actions
 
@@ -231,7 +294,7 @@ def main():
     - a node name (like "iosv-1")
     - a list of actions
 
-    Actions for a node can be 
+    Actions for a node can be
     - filter: start a packet filter with given parameters (packet count,
       and pcap filter)
     - command: executes commands on the node (via the LXC) and compares
@@ -285,10 +348,12 @@ def main():
     else:
         root_logger.info('loading command file')
         try:
-            commands = yaml.load(args.cmdfile)
+            commands = load_yml(args.cmdfile)
         except (yaml.scanner.ScannerError, yaml.parser.ParserError) as e:
             root_logger.critical('YAML: %s' % str(e).replace('\n', ''))
         else:
+            # remember working directory
+            commands['_workdir'] = os.path.dirname(args.cmdfile.name)
             # override command file loglevel
             loglevel = commands['config'].get('loglevel', LOGDEFAULT)
             if args.loglevel is not None:

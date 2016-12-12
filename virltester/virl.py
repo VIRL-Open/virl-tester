@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+from datetime import datetime, timedelta
 from time import sleep
 from logging import DEBUG, INFO, WARN, ERROR, CRITICAL
 from threading import Semaphore
@@ -10,7 +11,7 @@ import requests
 
 
 class VIRLSim(object):
-    ''' holds configuration information needed by all the functions '''
+    '''holds configuration information of a VIRL simulation'''
 
     # will sleep for 'timeout / INTERVAL' when waiting for sim to start
     INTERVAL = 30
@@ -33,7 +34,7 @@ class VIRLSim(object):
         self._semaphore = Semaphore()
 
     def _url(self, method=''):
-        '''return the proper URL given the global vars and the
+        '''return the proper URL given the set vars and the
         method parameter.
         '''
         return "http://{}:{}/simengine/rest/{}".format(self._host,
@@ -57,7 +58,8 @@ class VIRLSim(object):
         return self._request('DELETE', method, *args, **kwargs)
 
     def log(self, level, *args, **kwargs):
-        # print(args)
+        '''send the message in args to the logger with the given level.
+        '''
         sim = self._sim_id if self._sim_id is not None else '<unknown>'
         newargs = list(args)
         newargs[0] = ': '.join((sim, args[0]))
@@ -89,7 +91,7 @@ class VIRLSim(object):
         sim_name = os.path.basename(os.path.splitext(self._filename)[0])
         self.log(WARN, 'Starting [%s]' % sim_name)
 
-        # debugging purpose
+        # for debugging purposes. uses existing sim, does not start nor stop
         if self._no_start and len(self._sim_id) > 0:
             return True
 
@@ -114,11 +116,9 @@ class VIRLSim(object):
         return ok
 
     def waitForSimStart(self):
-        '''Returns True if the sim is started and all nodes
-        are active/reachable
+        '''Returns True if the sim is started and all nodes are active/reachable
         waits for self._timeout (default 5min)
         '''
-        waited = 0
         active = False
         interval = self._timeout // self.INTERVAL
         if interval == 0:
@@ -126,11 +126,12 @@ class VIRLSim(object):
 
         self.log(WARN, 'Waiting %ds to become active...', self._timeout)
 
-        # debugging purpose
+        # for debugging purposes
         if self._no_start and len(self._sim_id) > 0:
             return True
 
-        while not active and waited < self._timeout:
+        endtime = datetime.utcnow() + timedelta(seconds=self._timeout)
+        while not active and endtime > datetime.utcnow():
 
             # Make an API call and assign the response information to the
             # variable
@@ -140,32 +141,37 @@ class VIRLSim(object):
 
             # check if all nodes are active AND reachable
             nodes = r.json()[self._sim_id]
+            active = True
             for node in nodes.values():
-                if not (node.get('state') == 'ACTIVE' and
-                        node.get('reachable')):
+                if node['state'] == 'SHUTOFF':
+                    continue
+                if not (node['state'] == 'ACTIVE' and node['reachable']):
                     active = False
                     break
-                else:
-                    active = True
 
             # wait if not
             if not active:
                 sleep(interval)
-                waited += interval
 
         if active:
             self.log(WARN, "Simulation is active.")
         else:
             self.log(ERROR, "Timeout... aborting!")
+            for name, node in nodes.items():
+                state = node['state']
+                reachable = node['reachable']
+                if not(state == 'ACTIVE' and reachable):
+                    self.log(ERROR, "%s: %s, %s", name, state, reachable)
+                    break
 
         return active
 
     def stopSim(self):
-        '''This function will stop the simulation specified in cfg
+        '''This function will stop the simulation
         '''
         self.log(WARN, 'Simulation stop...')
 
-        # debugging purpose
+        # for debugging purposes
         if self._no_start and len(self._sim_id) > 0:
             return True
 
@@ -177,6 +183,9 @@ class VIRLSim(object):
             self.log(INFO, 'Simulation stop initiated.')
 
     def getInterfaces(self, node):
+        '''return the list of interfaces for the given node or
+        None if not found.
+        '''
         self.log(INFO, "Getting interfaces for [%s]...", node)
         params = dict(nodes=node)
         r = self._get('interfaces/%s' % self._sim_id, params=params)
@@ -187,7 +196,7 @@ class VIRLSim(object):
         return None
 
     def getInterfaceId(self, node, interface):
-        '''get the interface index we're looking for
+        '''get the interface index for the given interface name.
         '''
         self.log(INFO, "Getting ID from name [%s]...", interface)
         interfaces = self.getInterfaces(node)
@@ -221,7 +230,7 @@ class VIRLSim(object):
             return capId
 
     def deleteCapture(self, capId):
-        '''delete the given packet capture for the simulation
+        '''delete the given packet capture with capId for the simulation
         '''
         self.log(INFO, "Deleting packet capture...")
 
@@ -231,13 +240,12 @@ class VIRLSim(object):
 
     def waitForCapture(self, capId, wait=None):
         '''Wait until the packet capture is done. check for the 'running'
-        state every 10 seconds.
+        state according to the set wait time divided by INTERVAL divisor
         '''
 
         if wait is None:
             wait = self._timeout
 
-        waited = 0
         done = False
         interval = wait // self.INTERVAL
         if interval == 0:
@@ -245,7 +253,8 @@ class VIRLSim(object):
 
         self.log(INFO, 'Waiting %ds for capture [%s]', wait, capId)
 
-        while not done and waited < wait:
+        endtime = datetime.utcnow() + timedelta(seconds=wait)
+        while not done and endtime > datetime.utcnow():
 
             # Make an API call and assign the response information to the
             # variable
@@ -263,7 +272,6 @@ class VIRLSim(object):
             # wait if not
             if not done:
                 sleep(interval)
-                waited += interval
 
         if done:
             self.log(WARN, "Capture has finished.")
@@ -298,9 +306,11 @@ class VIRLSim(object):
         return True
 
     def getMgmtIP(self, node):
+        ''' return the management IP of the given Node name
+        '''
         interfaces = self.getInterfaces(node)
         if interfaces is None:
-            return None            
+            return None
 
         for key, intfc in interfaces.items():
             if key == 'management' and intfc.get('ip-address') is not None:
@@ -312,6 +322,10 @@ class VIRLSim(object):
         return None
 
     def getLXCPort(self):
+        ''' return the TCP port of the LXC host for the simulation
+        the LXC can then be reached via the sim host on this port using
+        SSH as the protocol.
+        '''
         self._semaphore.acquire()
         port = self._lxc_port
         if port is None:

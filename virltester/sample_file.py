@@ -57,7 +57,7 @@ sims:
       background: yes
       #sleep: 5
       wait: 5
-      in: 
+      in:
       - term len 0
       - show version
       - ping 10.0.0.6 count 50
