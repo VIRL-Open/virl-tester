@@ -32,6 +32,6 @@ setup(name='virltester',
           'requests>=2',
           'PyYAML>=3'
       ],
-      packages=find_packages(exclude=['Examples']),
+      packages=find_packages(exclude=['Examples', 'test']),
       )
 
