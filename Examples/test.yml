@@ -13,5 +13,5 @@ config:
 
 
 includes:
-  - Examples/command-usecase2.yml
+  - command-usecase2.yml
 
