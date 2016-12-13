@@ -13,7 +13,7 @@ config:
 
 
 sims:
-- topo: ~/Downloads/4node-iosv.virl
+- topo: 4node-iosv.virl
   wait: 300
   nodes:
   - iosv-1:
