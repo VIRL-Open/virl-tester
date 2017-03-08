@@ -81,7 +81,8 @@ def doCommandAction(virl, name, action, log_output):
     ok = interaction(virl, logname, address, transport,
                      in_cmd, out_re, logic, wait)
     level = WARN if ok else ERROR
-    virl.log(level, "(%d) command succeeded: %s", action['_seq'], ok)
+    label = 'SUCCEED' if ok else 'FAIL' 
+    virl.log(level, "(%d) command %sED", action['_seq'], label)
     action['success'] = ok
 
 
@@ -135,7 +136,11 @@ def doSim(virl, sim):
     return ok
 
 
-def doAllSims(cmdfile, args, logger):
+def doAllSims(cmdfile, logger=None):
+
+    # do we have a logger? If not, get the root logger
+    if logger is None:
+        logger = logging.getLogger()
 
     cfg = cmdfile['config']
     cfg_wait = cfg.get('wait', MAXWAIT)
@@ -163,7 +168,8 @@ def doAllSims(cmdfile, args, logger):
 
             # .virl files are relative to command file
             # prepend path of command file
-            topo = os.path.join(cmdfile['_workdir'], sim['topo'])
+            workdir = cmdfile.get('_workdir', '')
+            topo = os.path.join(workdir, sim['topo'])
             wait = sim.get('wait', cfg_wait)
             virl = VIRLSim(cfg['host'], cfg['user'], cfg['password'],
                            topo, logger, timeout=wait)
@@ -216,9 +222,9 @@ def doAllSims(cmdfile, args, logger):
     return total == success
 
 
-def load_yml(filename, lvl=0):
-    """load the YAML formatted command file specified by filename.
-    recursively include additional command files if the include
+def loadCfg(filename, lvl=0):
+    """load the YAML formatted configuration file specified by filename.
+    Recursively include additional command files if the include
     key exist (list of files)
 
     includes:
@@ -247,7 +253,7 @@ def load_yml(filename, lvl=0):
                 basename = os.path.basename(include)
                 if len(path) > 0:
                     os.chdir(path)
-                subdata = load_yml(basename, lvl + 1)
+                subdata = loadCfg(basename, lvl + 1)
             except (IOError, OSError) as e:
                 raise yaml.scanner.ScannerError("%s/%s: %s" % (
                       os.getcwd(), include, e.strerror))
@@ -351,7 +357,7 @@ def main():
     else:
         root_logger.info('loading command file')
         try:
-            commands = load_yml(args.cmdfile)
+            commands = loadCfg(args.cmdfile)
         except (yaml.scanner.ScannerError, yaml.parser.ParserError) as e:
             root_logger.critical('YAML: %s' % str(e).replace('\n', ''))
         else:
@@ -363,7 +369,7 @@ def main():
                 if loglevel != args.loglevel:
                     loglevel = args.loglevel
             root_logger.setLevel(logging.CRITICAL - loglevel * 10)
-            ok = doAllSims(commands, args, root_logger)
+            ok = doAllSims(commands, root_logger)
 
     # shell return value
     return 0 if ok else -1
