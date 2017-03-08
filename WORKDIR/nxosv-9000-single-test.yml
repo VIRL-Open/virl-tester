@@ -31,7 +31,7 @@ sims:
       # first ping seems to get lost
       # ping twice then.
       in:
-      - ping -c1 10.0.0.9
+      - ping -W1 -c1 10.0.0.9
       - ping -c5 10.0.0.9
       out:
       - \ 0% packet loss
@@ -41,7 +41,7 @@ sims:
       sleep: 10
       wait: 10
       in:
-      - ping -c1 10.0.0.5
+      - ping -W1 -c1 10.0.0.5
       - ping -c5 10.0.0.5
       out:
       - \ 0% packet loss

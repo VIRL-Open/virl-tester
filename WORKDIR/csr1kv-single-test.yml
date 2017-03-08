@@ -14,7 +14,7 @@ config:
   user: guest
   password: guest
   # loglevel (0-4, 4=Debug)
-  loglevel: 2
+  loglevel: 4
   # default wait time (spinup / actions)
   wait: 300
   #parallel: 1
@@ -31,7 +31,7 @@ sims:
       # first ping seems to get lost
       # ping twice then.
       in:
-      - ping -c1 10.0.0.10
+      - ping -W1 -c1 10.0.0.10
       - ping -c5 10.0.0.10
       out:
       - \ 0% packet loss
@@ -41,7 +41,7 @@ sims:
       sleep: 10
       wait: 10
       in:
-      - ping -c1 10.0.0.6
+      - ping -W1 -c1 10.0.0.6
       - ping -c5 10.0.0.6
       out:
       - \ 0% packet loss

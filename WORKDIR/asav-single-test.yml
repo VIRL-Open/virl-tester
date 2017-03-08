@@ -33,6 +33,7 @@ sims:
       sleep: 5
       wait: 10
       in:
+      - ping -W1 -c1 10.0.0.10
       - ping -c5 10.0.0.10
       out:
       - \ 0% packet loss
