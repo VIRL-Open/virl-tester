@@ -129,9 +129,13 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
         interact.send('exit')
         interact.expect(LXC_PROMPT)
     except socket_timeout:
-        sim.log(logging.CRITICAL, 'command interaction timed out')
+        sim.log(logging.CRITICAL, 'command interaction timed out (%ds)' % timeout)
         sim.sshClose()
-        pass
+        # write rest of output to file
+        fh.write('<<< %s\n' % interact.current_output_clean.split('\n')[0])
+        for oline in interact.current_output_clean.split('\n')[1:]:
+            fh.write('    %s\n' % oline)
+        #input('[enter to continue]')
 
     fh.close()
     sim._semaphore.release()
