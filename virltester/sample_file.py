@@ -3,7 +3,7 @@
 _sample_command_file = '''\
 config:
   # the VIRL host
-  host: 172.23.175.92
+  host: 172.16.1.254
   # username and password
   user: guest
   password: guest
