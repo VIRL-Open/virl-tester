@@ -1,0 +1,43 @@
+#
+# ping test
+# from lxc-1     (10.0.0.6)
+# via  iosxrv-1  (10.0.0.5 / 10.0.0.9)
+# to   lxc-2     (10.0.0.10)
+# 
+# ralph
+#
+
+config:
+  # the VIRL host
+  host: 172.23.175.226
+  # username and password
+  user: guest
+  password: guest
+  # loglevel (0-4, 4=Debug)
+  loglevel: 2
+  # default wait time (spinup / actions)
+  wait: 300
+
+
+sims:
+- topo: Topos/iosxrv-single-test.virl
+  wait: 600
+  nodes:
+  - lxc-1:
+    - type: command
+      transport: ssh
+      sleep: 5
+      wait: 10
+      in:
+      - ping -c5 10.0.0.10
+      out:
+      - \ 0% packet loss
+  - lxc-2:
+    - type: command
+      transport: ssh
+      sleep: 5
+      wait: 10
+      in:
+      - ping -c5 10.0.0.6
+      out:
+      - \ 0% packet loss
