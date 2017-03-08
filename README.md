@@ -20,7 +20,7 @@ The `WORKDIR` directory should have a consistent set of files for a basic smoke 
 - activate it `source VENV/bin/activate`
 - install the library `pip install .` -or-
 - install it editable `pip install -e .`
-- add the paramiko fork: `pip install git+https://github.com/rschmied/paramiko-expect.git` 
+- add the paramiko-expect fork: `pip install git+https://github.com/rschmied/paramiko-expect.git` 
 
 # Using the Tool
 
