@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import paramiko
-from paramiko_expect import SSHClientInteraction
 from socket import timeout as socket_timeout
 import re
 import logging
 from threading import Semaphore
-from os import devnull
 from datetime import datetime
 
 DEVICE_U = DEVICE_P = 'cisco'
@@ -33,17 +30,12 @@ PASSWORD_PROMPT = [
 ]
 PROMPT = CISCO_PROMPT + LINUX_PROMPT
 
-# keep the client interaction alive
-interact = client = None
-semaphore = Semaphore()
 
-
-def interaction(sim, logname, port, dest_ip, transport, inlines, output_re, logic, timeout):
+def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, timeout):
     '''interact with sim nodes via the LXC host (client).
     - sim is the current simulation
     - logname is the name of the node for the log filename 
       (if None then no log will be written
-    - port is the port of the LXC on the sim host
     - dest_ip is the IP of the sim node
     - transport is either 'ssh' or 'telnet'
     - inlines is a list of commands to be sent
@@ -53,9 +45,6 @@ def interaction(sim, logname, port, dest_ip, transport, inlines, output_re, logi
     - timeout in seconds before the command interaction times out
     '''
 
-    global client, interact
-
-    semaphore.acquire()
     ok = False
 
     # transport and RE logic
@@ -67,16 +56,10 @@ def interaction(sim, logname, port, dest_ip, transport, inlines, output_re, logi
         return ok
     sim.log(logging.DEBUG, 'transport: %s, logic: %s', transport, logic)
 
-    if interact is None:
-        client = paramiko.SSHClient()
-        paramiko.hostkeys.HostKeys(filename=devnull)
-        # client.load_system_host_keys()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(hostname=sim.simHost, username=sim.simUser,
-                       password=sim.simPass, port=port)
-
-        interact = SSHClientInteraction(client, timeout=timeout,
-                                        display=sim.isLogDebug())
+    # open the SSH connection to the node
+    interact = sim.sshOpen(timeout)
+    # make sure only one at a time
+    sim._semaphore.acquire()
     try:
 
         LXC_PROMPT = [r'%s@[\w-]+\$ ' % sim.simUser]
@@ -146,11 +129,9 @@ def interaction(sim, logname, port, dest_ip, transport, inlines, output_re, logi
         interact.expect(LXC_PROMPT)
     except socket_timeout:
         sim.log(logging.CRITICAL, 'command interaction timed out')
-        interact.close()
-        client.close()
-        interact = client = None
+        sim.sshClose()
         pass
 
-    semaphore.release()
+    sim._semaphore.release()
 
     return ok

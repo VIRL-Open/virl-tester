@@ -6,6 +6,9 @@ from time import sleep
 from logging import DEBUG, INFO, WARN, ERROR, CRITICAL
 from threading import Semaphore
 import requests
+import paramiko
+from paramiko_expect import SSHClientInteraction
+
 
 """ defines the simulation element """
 
@@ -32,6 +35,8 @@ class VIRLSim(object):
         self._lxc_port = None
         self._no_start = False
         self._semaphore = Semaphore()
+        self._ssh_client = None
+        self._ssh_interact = None
 
     def _url(self, method=''):
         '''return the proper URL given the set vars and the
@@ -84,6 +89,12 @@ class VIRLSim(object):
     @property
     def simPass(self):
         return self._password
+
+    @property
+    def sshInteract(self):
+        if self._ssh_interact is not None:
+            return self._ssh_interact
+        return self.sshOpen()
 
     def startSim(self):
         '''This function will start a simulation using the provided .virl file
@@ -174,6 +185,9 @@ class VIRLSim(object):
         # for debugging purposes
         if self._no_start and len(self._sim_id) > 0:
             return True
+
+        # ensure SSH sessions are closed, if open
+        self.sshClose()
 
         # Make an API call and assign the response information to the variable
         r = self._get('stop/%s' % self._sim_id)
@@ -342,3 +356,30 @@ class VIRLSim(object):
                     self.log(ERROR, "Can't find LXC port")
         self._semaphore.release()
         return port
+
+    def sshOpen(self, timeout=5):
+        if self._ssh_interact is not None:
+            return self._ssh_interact
+
+        self.log(WARN, 'Acquiring LXC SSH session')
+        if self._lxc_port is None:
+            self.getLXCPort()
+
+        self._ssh_client = paramiko.SSHClient()
+        paramiko.hostkeys.HostKeys(filename=os.devnull)
+        # client.load_system_host_keys()
+        self._ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        self._ssh_client.connect(hostname=self._host, username=self._username,
+                                 password=self._password, port=self._lxc_port)
+
+        self._ssh_interact = SSHClientInteraction(self._ssh_client, timeout=timeout,
+                                                  display=self.isLogDebug())
+        return self._ssh_interact
+
+    def sshClose(self):
+        if self._ssh_interact is None:
+            return
+        self.log(WARN, 'Closing LXC SSH session')
+        self._ssh_interact.close()
+        self._ssh_client.close()
+        self._ssh_interact = self._ssh_client = None
