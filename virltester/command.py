@@ -5,6 +5,7 @@ import re
 import logging
 from threading import Semaphore
 from datetime import datetime
+from os import devnull
 
 DEVICE_U = DEVICE_P = 'cisco'
 CISCO_NOPRIV = r'[\w-]+(\([\w-]+\))?> ?'
@@ -132,6 +133,7 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
         sim.sshClose()
         pass
 
+    fh.close()
     sim._semaphore.release()
 
     return ok
