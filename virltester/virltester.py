@@ -14,6 +14,7 @@ import yaml
 
 from logging import DEBUG, INFO, WARN, ERROR, CRITICAL
 from time import sleep
+from io import TextIOWrapper as file
 
 # default for wait time in seconds
 # used for sim start and captures
@@ -71,16 +72,14 @@ def doCommandAction(virl, name, action, log_output):
     virl.log(WARN, '(%s%d) command: %s %s', bg_indicator, seq, name, in_cmd)
     initialSleep(virl, seq, __name__, action)
 
-    port = virl.getLXCPort()
     address = virl.getMgmtIP(name)
     ok = False
     if log_output or action.get('log', False):
         logname = '-'.join((virl.simId, name))
     else:
         logname = None
-    if port is not None:
-        ok = interaction(virl, logname, port, address, transport,
-                         in_cmd, out_re, logic, wait)
+    ok = interaction(virl, logname, address, transport,
+                     in_cmd, out_re, logic, wait)
     level = WARN if ok else ERROR
     virl.log(level, "(%d) command succeeded: %s", action['_seq'], ok)
     action['success'] = ok
@@ -150,6 +149,10 @@ def doAllSims(cmdfile, args, logger):
             if sim['thread'].isAlive():
                 active += 1
         return active
+
+    # if undefined make it one
+    if cfg.get('parallel') is None:
+        cfg['parallel'] = 1
 
     # start all sims
     try:
