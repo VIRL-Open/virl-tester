@@ -107,3 +107,8 @@ The WORKDIR directory has a set of files which test all existing node types (ref
 
 The test verifies that nodes come up fine and frames are forwarded. The `allnodes.yml` file does this for all node types (minus the XRv9000 as that one is currently broken).
 
+## Loops
+
+```bash
+for i in $(seq 100); do { time virltester allnodes.yml ;}  >>main.log 2>&1 ; done
+```
