@@ -19,11 +19,12 @@ config:
   # needs more time for some node types if we
   # spin up sims in parallel (single sims are
   # OK with 300s). Just to be on the safe side
-  wait: 600
+  wait: 1200
   parallel: 6
 
 
 includes:
+- nxosv-9000-single-test.yml
 - iosv-single-test.yml
 - iosvl2-single-test.yml
 - asav-single-test.yml
@@ -32,5 +33,4 @@ includes:
 # IOS XRv9000 is horribly broken
 #- iosxrv-9000-single-test.yml
 - nxosv-single-test.yml
-- nxosv-9000-single-test.yml
 
