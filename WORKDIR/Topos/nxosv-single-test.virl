@@ -2,7 +2,7 @@
     xmlns="http://www.cisco.com/VIRL"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" schemaVersion="0.95" xsi:schemaLocation="http://www.cisco.com/VIRL https://raw.github.com/CiscoVIRL/schema/v0.95/virl.xsd">
     <extensions>
-        <entry key="management_network" type="String">user</entry>
+        <entry key="management_network" type="String">exclusive</entry>
     </extensions>
     <node location="571,342" type="SIMPLE" subtype="lxc" name="lxc-1">
         <extensions>

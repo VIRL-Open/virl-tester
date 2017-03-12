@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <topology xmlns="http://www.cisco.com/VIRL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" schemaVersion="0.95" xsi:schemaLocation="http://www.cisco.com/VIRL https://raw.github.com/CiscoVIRL/schema/v0.95/virl.xsd">
+    <extensions>
+        <entry key="management_network" type="String">exclusive</entry>
+    </extensions>
     <node name="nx-osv9000-1" type="SIMPLE" subtype="NX-OSv 9000" location="560,272" ipv4="192.168.0.3">
         <extensions>
             <entry key="config" type="string">! NX-OSv Config generated on 2017-03-08 10:48
@@ -71,9 +74,10 @@ interface mgmt0
   description OOB Management
   ! Configured on launch
   no ip address
+  no ip directed-broadcast
   mac-address fa16.3e00.0003
-  no shutdown
   vrf member management
+  no shutdown
 
 
 line console
