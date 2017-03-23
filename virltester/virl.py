@@ -51,11 +51,7 @@ class VIRLSim(object):
                                                 api, method)
 
     def _request(self, verb, method, *args, **kwargs):
-
-        roster = kwargs.get('roster')
-        url = self._url(method, roster=roster)
-        if roster:
-            del kwargs['roster']
+        url = self._url(method, roster=kwargs.pop('roster', False))
         r = self._session.request(verb, url, *args, **kwargs)
         if not r.ok:
             self.log(ERROR, 'VIRL API [%s]: %s',
