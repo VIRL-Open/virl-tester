@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from .prompts import USERNAME_PROMPT, PASSWORD_PROMPT, CISCO_NOPRIV, PROMPT, DEVICE_U, DEVICE_P
 from socket import timeout as socket_timeout
 import re
 import logging
@@ -7,29 +8,20 @@ from threading import Semaphore
 from datetime import datetime
 from os import devnull
 
-DEVICE_U = DEVICE_P = 'cisco'
-CISCO_NOPRIV = r'[\w-]+(\([\w-]+\))?> ?'
-CISCO_PROMPT = [
-    # IOS XE, IOS, IOS L2, NX-OS, NX-OS 9kv
-    CISCO_NOPRIV,
-    r'[\w-]+(\([\w-]+\))?# ?',
-    # IOS XR
-    r'RP\/0\/0\/CPU0:[\w-]+# ?',
-    # RP/0/0/CPU0:ios_xrv-2#
-]
-LINUX_PROMPT = [
-    r'%s@[\w\:~-]+\$ ?' % DEVICE_U
-    # cisco@lxc-sshd-1$
-]
-USERNAME_PROMPT = [
-    r'[uU]sername: ?',
-    r'[lL]ogin: ?'
-]
-PASSWORD_PROMPT = [
-    r'[pP]assword: ?',
-    r'%s@[\w\.\'-]+ password: ?' % DEVICE_U
-]
-PROMPT = CISCO_PROMPT + LINUX_PROMPT
+
+'''
+console=dict(device_type='cisco_ios_telnet', 
+             ip='172.23.175.245', 
+             port=17000, 
+             verbose=True, 
+             secret='cisco')
+net_connect = netmiko.ConnectHandler(**console)
+net_connect.find_prompt()
+net_connect.enable()
+r=net_connect.send_command('sh ip int brief')
+print(r)
+net_connect.disconnect()
+'''
 
 
 def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, timeout):

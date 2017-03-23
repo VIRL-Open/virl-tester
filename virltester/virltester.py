@@ -66,23 +66,25 @@ def doCommandAction(virl, name, action, log_output):
     wait = action.get('wait', 5)
 
     # this stuff probably should all go into an Action class
+    ok = False
     seq = action['_seq']
     bg = action.get('background', False)
     bg_indicator = '*' if bg else ''
     virl.log(WARN, '(%s%d) command: %s %s', bg_indicator, seq, name, in_cmd)
     initialSleep(virl, seq, __name__, action)
 
+    # get the IP of the mgmt LXC for SSH
     address = virl.getMgmtIP(name)
-    ok = False
-    if log_output or action.get('log', False):
-        logname = '-'.join((virl.simId, name))
-    else:
-        logname = None
-    ok = interaction(virl, logname, address, transport,
-                     in_cmd, out_re, logic, wait)
-    level = WARN if ok else ERROR
-    label = 'SUCCEED' if ok else 'FAIL' 
-    virl.log(level, "(%d) command %sED", action['_seq'], label)
+    if address is not None:
+        if log_output or action.get('log', False):
+            logname = '-'.join((virl.simId, name))
+        else:
+            logname = None
+        ok = interaction(virl, logname, address, transport,
+                         in_cmd, out_re, logic, wait)
+        level = WARN if ok else ERROR
+        label = 'SUCCEED' if ok else 'FAIL' 
+        virl.log(level, "(%d) command %sED", action['_seq'], label)
     action['success'] = ok
 
 
@@ -173,8 +175,10 @@ def doAllSims(cmdfile, logger=None):
             wait = sim.get('wait', cfg_wait)
             virl = VIRLSim(cfg['host'], cfg['user'], cfg['password'],
                            topo, logger, timeout=wait)
-            # virl._sim_id = '4node-iosv-oajhLQ'
-            # virl._no_start = True
+
+            # for testing purposes
+            #virl._sim_id = 'csr1kv-single-test-Uw32MT'
+            #virl._no_start = True
 
             logger.warn('new thread %s', sim['topo'])
             t = threading.Thread(target=doSim, args=(virl, sim))
@@ -320,7 +324,7 @@ def main():
     Example:
     %(prog)s --loglevel 4 command.yml
     %(prog)s -l0 command2.yml
-    %(prog)s --sample
+    %(prog)s --example
     ''')
 
     parser = argparse.ArgumentParser(description=description, epilog=epilog,
@@ -329,8 +333,8 @@ def main():
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('cmdfile', nargs='?', type=argparse.FileType('r'),
                        help="command file in YAML format")
-    group.add_argument('--sample', '-s', action='store_true',
-                       help="create a sample command file command-sample.yml")
+    group.add_argument('--example', '-e', action='store_true',
+                       help="create an example command file command-example.yml")
 
     parser.add_argument('--nocolor', '-n', action='store_true',
                         help="don't use colors for logging")
@@ -351,8 +355,8 @@ def main():
 
     # run in config file mode
     ok = False
-    if args.sample:
-        root_logger.warn('saving sample commands to command-sample.yml')
+    if args.example:
+        root_logger.warn('saving example commands to command-example.yml')
         ok = writeCommandSample()
     else:
         root_logger.info('loading command file')

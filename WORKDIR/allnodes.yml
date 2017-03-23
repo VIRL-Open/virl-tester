@@ -9,7 +9,7 @@
 
 config:
   # the VIRL host
-  host: 172.23.175.226
+  host: 172.23.175.245
   # username and password
   user: guest
   password: guest
@@ -19,8 +19,8 @@ config:
   # needs more time for some node types if we
   # spin up sims in parallel (single sims are
   # OK with 300s). Just to be on the safe side
-  wait: 1200
-  parallel: 6
+  wait: 600
+  parallel: 8
 
 
 includes:

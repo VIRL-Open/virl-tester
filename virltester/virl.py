@@ -8,6 +8,8 @@ from threading import Semaphore
 import requests
 import paramiko
 from paramiko_expect import SSHClientInteraction
+from .console import postMortem
+from json import dumps
 
 
 """ defines the simulation element """
@@ -38,16 +40,23 @@ class VIRLSim(object):
         self._ssh_client = None
         self._ssh_interact = None
 
-    def _url(self, method=''):
+    def _url(self, method='', roster=False):
         '''return the proper URL given the set vars and the
         method parameter.
         '''
-        return "http://{}:{}/simengine/rest/{}".format(self._host,
-                                                       self._port,
-                                                       method)
+        api = 'simengine'
+        if roster:
+            api = 'roster'
+        return "http://{}:{}/{}/rest/{}".format(self._host, self._port, 
+                                                api, method)
 
     def _request(self, verb, method, *args, **kwargs):
-        r = self._session.request(verb, self._url(method), *args, **kwargs)
+
+        roster = kwargs.get('roster')
+        url = self._url(method, roster=roster)
+        if roster:
+            del kwargs['roster']
+        r = self._session.request(verb, url, *args, **kwargs)
         if not r.ok:
             self.log(ERROR, 'VIRL API [%s]: %s',
                      r.status_code, r.json().get('cause'))
@@ -137,9 +146,9 @@ class VIRLSim(object):
 
         self.log(WARN, 'Waiting %ds to become active...', self._timeout)
 
-        # for debugging purposes
-        if self._no_start and len(self._sim_id) > 0:
-            return True
+        # for testing purposes
+        #if self._no_start and len(self._sim_id) > 0:
+        #   return True
 
         endtime = datetime.utcnow() + timedelta(seconds=self._timeout)
         while not active and endtime > datetime.utcnow():
@@ -164,16 +173,29 @@ class VIRLSim(object):
             if not active:
                 sleep(interval)
 
+        # for testing purposes
+        #active = False
+        #nodes['csr1000v-1']['reachable'] = False
+
         if active:
             self.log(WARN, "Simulation is active.")
         else:
             self.log(ERROR, "Timeout... aborting!")
+
+            # write status log file
+            with open("status-%s.log" % self._sim_id, "w") as fh:
+                fh.write(dumps(self.getStatus(), indent=2))
+
             for name, node in nodes.items():
                 state = node['state']
                 reachable = node['reachable']
                 if not(state == 'ACTIVE' and reachable):
                     self.log(ERROR, "%s: %s, %s", name, state, reachable)
-                    break
+
+                    subtype, serial_port = self.getNodeDetail(name)
+                    if serial_port is not None:
+                        postMortem(self, name, subtype, self._host, serial_port)
+                        self.log(ERROR, "error log written!")
 
         return active
 
@@ -195,6 +217,32 @@ class VIRLSim(object):
         # Check if call was successful, if true log it and exit the application
         if r.status_code == 200:
             self.log(INFO, 'Simulation stop initiated.')
+
+    def getNodeDetail(self, node):
+        '''Get the node subtype and console port of the given node
+        guest|csr1kv-single-test-9DYnbf|virl|csr1000v-1
+        '''
+        self.log(INFO, "Getting console port for [%s]...", node)
+        r = self._get('', roster=True)
+        if r.ok:
+            for k, v in r.json().items():
+                f = k.split('|')
+                if len(f) > 1 and f[1] == self._sim_id and f[3] == node:
+                    return (v.get('NodeSubtype'), v.get('PortConsole'))
+
+    def getEvents(self):
+        'Get the events associated with the sim'
+        self.log(INFO, "Getting events...")
+        r = self._get('events/%s' % self._sim_id)
+        if r.ok:
+            return r.json()
+
+    def getStatus(self):
+        'Get the status messages associated with the sim'
+        self.log(INFO, "Getting status messages...")
+        r = self._get('status/%s' % self._sim_id)
+        if r.ok:
+            return r.json()
 
     def getInterfaces(self, node):
         '''return the list of interfaces for the given node or

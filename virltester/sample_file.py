@@ -74,5 +74,5 @@ sims:
 '''
 
 def writeCommandSample():
-    with open('command-sample.yml', 'w') as fh:
+    with open('command-example.yml', 'w') as fh:
         fh.write(_sample_command_file)

@@ -9,7 +9,7 @@
 
 config:
   # the VIRL host
-  host: 172.23.175.226
+  host: 172.23.175.245
   # username and password
   user: guest
   password: guest
@@ -17,7 +17,7 @@ config:
   loglevel: 4
   # default wait time (spinup / actions)
   wait: 300
-  #parallel: 1
+  parallel: 0
 
 
 sims:
@@ -26,8 +26,8 @@ sims:
   - lxc-1:
     - type: command
       transport: ssh
-      sleep: 10
-      wait: 10
+      ##sleep: 10
+      ##wait: 10
       # first ping seems to get lost
       # ping twice then.
       in:
@@ -38,8 +38,8 @@ sims:
   - lxc-2:
     - type: command
       transport: ssh
-      sleep: 10
-      wait: 10
+      ##sleep: 10
+      ##wait: 10
       in:
       - ping -W1 -c1 10.0.0.6
       - ping -c5 10.0.0.6

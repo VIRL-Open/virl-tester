@@ -9,14 +9,14 @@
 
 config:
   # the VIRL host
-  host: 172.23.175.226
+  host: 172.23.175.245
   # username and password
   user: guest
   password: guest
   # loglevel (0-4, 4=Debug)
   loglevel: 2
   # default wait time (spinup / actions)
-  wait: 300
+  wait: 600
   #parallel: 1
 
 

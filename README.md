@@ -112,3 +112,17 @@ The test verifies that nodes come up fine and frames are forwarded. The `allnode
 ```bash
 for i in $(seq 100); do { time virltester allnodes.yml ;}  >>main.log 2>&1 ; done
 ```
+
+
+## Todo
+- implement a better action handler (e.g. list of actions mapped to functions)
+- implement sim and action queueing (thread safety??)
+- add start/stop action for nodes in sim
+- add link up/down action for node interfaces
+- add link conditioning action for node interfaces
+- implement exception handling for API call failures
+- implement negation of RE (e.g. 'not "100% ping loss"' string)
+
+## Done
+- add getConsole for Sim / node
+- in case of sim not going active/reachable, implement a console fallback to check what's going on on the node
