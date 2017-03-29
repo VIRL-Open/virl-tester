@@ -39,6 +39,7 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
     '''
 
     ok = False
+    fh = None
 
     # transport and RE logic
     if transport not in ['ssh', 'telnet']:
@@ -100,8 +101,10 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
             fh = open(devnull, "w")
 
         for line in inlines:
+            #interact.send(re.escape(line))
             interact.send(line)
             fh.write('>>> %s\n' % line)
+            # interact.expect(re.escape(line))
             interact.expect(PROMPT)
             fh.write('<<< %s\n' % interact.current_output_clean.split('\n')[0])
             for oline in interact.current_output_clean.split('\n')[1:]:
@@ -124,12 +127,14 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
         sim.log(logging.CRITICAL, 'command interaction timed out (%ds)' % timeout)
         sim.sshClose()
         # write rest of output to file
-        fh.write('<<< %s\n' % interact.current_output_clean.split('\n')[0])
-        for oline in interact.current_output_clean.split('\n')[1:]:
-            fh.write('    %s\n' % oline)
+        if fh is not None:
+            fh.write('<<< %s\n' % interact.current_output_clean.split('\n')[0])
+            for oline in interact.current_output_clean.split('\n')[1:]:
+                fh.write('    %s\n' % oline)
         #input('[enter to continue]')
 
-    fh.close()
+    if fh is not None:
+        fh.close()
     sim._semaphore.release()
 
     return ok
