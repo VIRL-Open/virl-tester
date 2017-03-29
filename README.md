@@ -114,7 +114,7 @@ for i in $(seq 100); do { time virltester allnodes.yml ;}  >>main.log 2>&1 ; don
 ```
 
 
-## Todo
+## Ideas
 - implement a better action handler (e.g. list of actions mapped to functions)
 - implement sim and action queueing (thread safety??)
 - add start/stop action for nodes in sim
@@ -122,6 +122,11 @@ for i in $(seq 100); do { time virltester allnodes.yml ;}  >>main.log 2>&1 ; don
 - add link conditioning action for node interfaces
 - implement exception handling for API call failures
 - implement negation of RE (e.g. 'not "100% ping loss"' string)
+- don't start by default, only when action 'start' is given
+- action 'wait to become active' or something
+- node filter based on nodes (e.g. 'filter "stage-2"') for each command
+- do not sim at end-action
+- prefix where log files should be written (cmd-line switch)
 
 ## Done
 - add getConsole for Sim / node
