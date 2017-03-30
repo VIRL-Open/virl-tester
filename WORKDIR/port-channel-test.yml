@@ -1,0 +1,94 @@
+#
+# ping test
+# lxc-1 is at 10.0.0.9
+# lxc-2 is at 10.0.0.5
+# lxc-3 is at 10.0.0.13
+# lxc-4 is at 10.0.0.10
+# lxc-5 is at 10.0.0.6
+# lxc-6 is at 10.0.0.14
+#
+#
+# +-------+                                         +-------+
+# |       |                                         |       |
+# | LXC1  |                                         | LXC4  |
+# |  100  |--+                                  +---|  100  |
+# |       |  |                                  |   |       |
+# +-------+  |  +---------+        +---------+  |   +-------+
+#            |  |         +--------|         |--+            
+# +-------+  +--|         +--------|         |      +-------+
+# |       +-----| iosvl2-1|--------| iosvl2-2|------+       |
+# | LXC2  |  +--|         +--------|         |--+   | LXC5  |
+# |  200  |  |  +---------+        +---------+  |   |  200  |
+# |       |  |                                  |   |       |
+# +-------+  |                                  |   +-------+
+#            |                                  |            
+# +-------+  |                                  |   +-------+
+# |       |  |                                  |   |       |
+# | LXC3  |  |                                  |   | LXC6  |
+# |  300  |--+                                  +---|  300  |
+# |       |                                         |       |
+# +-------+                                         +-------+
+#
+#
+# ralph
+#
+
+config:
+  # the VIRL host
+  host: 172.23.175.249
+  # username and password
+  user: guest
+  password: guest
+  # loglevel (0-4, 4=Debug)
+  loglevel: 2
+  # default wait time (spinup / actions)
+  wait: 300
+  #parallel: 1
+
+
+sims:
+- topo: Topos/l2-portchannel-test.virl
+  nodes:
+  - lxc-1:
+    - type: command
+      transport: ssh
+      sleep: 20
+      wait: 10
+      in:
+      - ping -W1 -c1 10.0.0.10
+      - ping -c5 10.0.0.10
+      out:
+      - \ 0% packet loss
+  - lxc-2:
+    - type: command
+      transport: ssh
+      wait: 10
+      in:
+      - ping -W1 -c1 10.0.0.6
+      - ping -c5 10.0.0.6
+      out:
+      - \ 0% packet loss
+  - lxc-3:
+    - type: command
+      transport: ssh
+      wait: 10
+      in:
+      - ping -W1 -c1 10.0.0.14
+      - ping -c5 10.0.0.14
+      out:
+      - \ 0% packet loss
+  - iosvl2-1:
+    - type: command
+      transport: telnet
+      in:
+      - 'show cdp neighbor'
+      out:
+      - 'Total cdp entries displayed : 4'
+  - iosvl2-1:
+    - type: command
+      transport: telnet
+      in:
+      - 'sh etherchannel port-channel | count Desirable-Sl'
+      out:
+      - 'Number of lines which match regexp = 4'
+
