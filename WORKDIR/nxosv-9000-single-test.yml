@@ -9,7 +9,7 @@
 
 config:
   # the VIRL host
-  host: 172.23.175.245
+  host: 172.23.175.249
   # username and password
   user: guest
   password: guest
