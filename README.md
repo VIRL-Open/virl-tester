@@ -22,6 +22,15 @@ The `WORKDIR` directory should have a consistent set of files for a basic smoke 
 - install it editable `pip install -e .`
 - add the paramiko-expect fork: `pip install git+https://github.com/rschmied/paramiko-expect.git` 
 
+```
+apt install -y virtualenv
+virtualenv venv
+cd venv/
+source bin/activate
+https_proxy="http://proxy.esl.cisco.com:80" pip install git+https://github.com/rschmied/paramiko-expect.git
+pip install git+http://gitlab.cisco.com/rschmied/virltester.git
+```
+
 # Using the Tool
 
 ```
