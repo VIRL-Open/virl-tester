@@ -14,7 +14,7 @@ import yaml
 
 from logging import DEBUG, INFO, WARN, ERROR, CRITICAL
 from time import sleep
-from io import TextIOWrapper as file
+from io import TextIOWrapper
 
 # default for wait time in seconds
 # used for sim start and captures
@@ -226,8 +226,8 @@ def doAllSims(cmdfile, logger=None):
     return total == success
 
 
-def loadCfg(filename, lvl=0):
-    """load the YAML formatted configuration file specified by filename.
+def loadCfg(fh, lvl=0):
+    """load the YAML formatted configuration file specified by fh.
     Recursively include additional command files if the include
     key exist (list of files)
 
@@ -239,10 +239,19 @@ def loadCfg(filename, lvl=0):
     """
     if lvl > 10:
         raise yaml.scanner.ScannerError('recursion too deep')
-    if type(filename) is file:
-        data = yaml.load(filename)
+
+    """"this works around a Python3 vs Python2 issue.
+    A file handle is of type io.TextIOWrapper in Py3 and of
+    type file in Py2.
+    Sequence of testing is important :) if fh is a file then
+    - in py2 it is False or True --> it is a file!
+    - in py3 it is True or (not evaluated but it would cause an
+      exception) --> it is a file
+    """
+    if isinstance(fh, TextIOWrapper) or isinstance(fh, file):
+        data = yaml.load(fh)
     else:
-        with open(filename, 'r') as f:
+        with open(fh, 'r') as f:
             data = yaml.load(f)
     if data.get('sims') is None:
         data['sims'] = list()
