@@ -61,8 +61,9 @@ iosxrv9k = ['IOS XRv 9000', 'cisco', 'cisco', '', ['term len 0 '], ['show ip int
 nxosv = ['NX-OSv', 'cisco', 'cisco', '', ['term len 0 '], ['show interface status']]
 nxosv9k = ['NX-OSv 9000', 'cisco', 'cisco', '', ['term len 0 '], ['show interface status']]
 server = ['server', 'cisco', 'cisco', '', [], ['ip route', 'ifconfig -a']]
+coreos = ['~coreos', 'cisco', 'cisco', '', [], ['ip route', 'ifconfig -a']]
 
-devices = {n[0]: n[1:] for n in [ asav, csr1kv, iosv, iosvl2, iosxrv, iosxrv9k, nxosv, nxosv9k, server]}
+devices = {n[0]: n[1:] for n in [ asav, csr1kv, iosv, iosvl2, iosxrv, iosxrv9k, nxosv, nxosv9k, server, coreos]}
 
 LastMatch = None
 
