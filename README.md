@@ -23,7 +23,7 @@ The `WORKDIR` directory should have a consistent set of files for a basic smoke 
 - add the paramiko-expect fork: `pip install git+https://github.com/rschmied/paramiko-expect.git` 
 
 ```
-apt install -y virtualenv
+sudo apt install -y virtualenv
 virtualenv venv
 cd venv/
 source bin/activate
