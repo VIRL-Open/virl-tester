@@ -92,10 +92,10 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
             # done = re.search(r'Connection refused', interact.current_output_clean) is None
             if not done:
                 sim.log(logging.WARN, 'ATTENTION: connection issue (%s)' % attempts)
-                sleep(RETRY_SLEEP)
-                attempts -= 1
                 if attempts == 0:
                     raise socket_timeout
+                sleep(RETRY_SLEEP)
+                attempts -= 1
 
         if transport == 'ssh':
             interact.send(DEVICE_P)
