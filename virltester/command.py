@@ -54,12 +54,27 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
     interact = sim.sshOpen(timeout)
     # make sure only one at a time
     sim._semaphore.acquire()
+
+    # get a logfile
+    if logname is not None:
+        filename = "%s-%s.log" % (datetime.utcnow().strftime('%Y%m%d%H%M%S'), logname)
+        fh = open(filename, "w")
+    else:
+        fh = open(devnull, "w")
+
     try:
 
         LXC_PROMPT = [r'%s@[\w-]+\$ ' % sim.simUser]
 
         interact.send('')
         interact.expect(LXC_PROMPT)
+
+        # for troubleshooting purposes
+        # seeing 'connection refused' for LXCs under overall load
+        # but they ping...
+        interact.send('ping -c2 %s' % dest_ip)
+        interact.expect(LXC_PROMPT)
+
         if transport == 'ssh':
             interact.send('ssh %s@%s' % (DEVICE_U, dest_ip))
         else:
@@ -94,12 +109,6 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
         if not isinstance(output_re, list):
             output_re = list((output_re,))
 
-        if logname is not None:
-            filename = "%s-%s.log" % (datetime.utcnow().strftime('%Y%m%d%H%M%S'), logname)
-            fh = open(filename, "w")
-        else:
-            fh = open(devnull, "w")
-
         for line in inlines:
             #interact.send(re.escape(line))
             interact.send(line)
@@ -127,14 +136,12 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
         sim.log(logging.CRITICAL, 'command interaction timed out (%ds)' % timeout)
         sim.sshClose()
         # write rest of output to file
-        if fh is not None:
-            fh.write('<<< %s\n' % interact.current_output_clean.split('\n')[0])
-            for oline in interact.current_output_clean.split('\n')[1:]:
-                fh.write('    %s\n' % oline)
+        fh.write('<<< %s\n' % interact.current_output_clean.split('\n')[0])
+        for oline in interact.current_output_clean.split('\n')[1:]:
+            fh.write('    %s\n' % oline)
         #input('[enter to continue]')
 
-    if fh is not None:
-        fh.close()
+    fh.close()
     sim._semaphore.release()
 
     return ok
