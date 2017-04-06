@@ -7,6 +7,7 @@ import logging
 from threading import Semaphore
 from datetime import datetime
 from os import devnull
+from time import sleep
 
 
 '''
@@ -38,6 +39,9 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
     - timeout in seconds before the command interaction times out
     '''
 
+    RETRY_ATTEMPTS = 5
+    RETRY_SLEEP = 60
+
     ok = False
     fh = None
 
@@ -64,7 +68,7 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
 
     try:
 
-        LXC_PROMPT = [r'%s@[\w-]+\$ ' % sim.simUser]
+        LXC_PROMPT = [r'%s@[\w-]+\$ ?' % sim.simUser]
 
         interact.send('')
         interact.expect(LXC_PROMPT)
@@ -74,12 +78,23 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
         # but they ping...
         interact.send('ping -c2 %s' % dest_ip)
         interact.expect(LXC_PROMPT)
+        # print('***past debug*** [%s]' % interact.last_match)
 
-        if transport == 'ssh':
-            interact.send('ssh %s@%s' % (DEVICE_U, dest_ip))
-        else:
-            interact.send('telnet %s' % dest_ip)
-        interact.expect(USERNAME_PROMPT + PASSWORD_PROMPT)
+        done = False
+        attempts = RETRY_ATTEMPTS
+        while not done:
+            if transport == 'ssh':
+                interact.send('ssh %s@%s' % (DEVICE_U, dest_ip))
+            else:
+                interact.send('telnet %s' % dest_ip)
+            interact.expect(USERNAME_PROMPT + PASSWORD_PROMPT + LXC_PROMPT)
+            done = re.search(r'Connection refused', interact.current_output_clean) is None
+            if not done:
+                sim.log(logging.WARN, 'ATTENTION: connection refused (%s)' % attempts)
+                sleep(RETRY_SLEEP)
+                attempts -= 1
+                if attempts == 0:
+                    raise socket_timeout
 
         if transport == 'ssh':
             interact.send(DEVICE_P)
@@ -134,6 +149,7 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
         interact.expect(LXC_PROMPT)
     except socket_timeout:
         sim.log(logging.CRITICAL, 'command interaction timed out (%ds)' % timeout)
+        sim.log(logging.CRITICAL, 'last match: [%s]' % interact.last_match)
         sim.sshClose()
         # write rest of output to file
         fh.write('<<< %s\n' % interact.current_output_clean.split('\n')[0])
