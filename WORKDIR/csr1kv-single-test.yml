@@ -9,10 +9,10 @@
 
 config:
   # the VIRL host
-  host: 172.23.175.245
+  host: {{ env['VIRL_HOST'] or "localhost" }}
   # username and password
-  user: guest
-  password: guest
+  user: {{ env['VIRL_USER'] or "guest" }}
+  password: {{ env['VIRL_PASS'] or "guest" }}
   # loglevel (0-4, 4=Debug)
   loglevel: 4
   # default wait time (spinup / actions)

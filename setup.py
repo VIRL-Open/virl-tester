@@ -28,6 +28,7 @@ setup(name='virltester',
           ],
       },
       install_requires=[
+          'jinja2>=2',
           'paramiko>=2',
           'requests>=2',
           'PyYAML>=3'

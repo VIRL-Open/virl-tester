@@ -35,10 +35,10 @@
 
 config:
   # the VIRL host
-  host: 172.23.175.249
+  host: {{ env['VIRL_HOST'] or "localhost" }}
   # username and password
-  user: guest
-  password: guest
+  user: {{ env['VIRL_USER'] or "guest" }}
+  password: {{ env['VIRL_PASS'] or "guest" }}
   # loglevel (0-4, 4=Debug)
   loglevel: 2
   # default wait time (spinup / actions)
@@ -81,14 +81,18 @@ sims:
     - type: command
       transport: telnet
       in:
+      - term len 0
       - 'show cdp neighbor'
+      - 'show cdp neighbor | count iosvl2-2         Gig 1/'
       out:
-      - 'Total cdp entries displayed : 4'
+      # - 'Total cdp entries displayed : 4'
+      - 'Number of lines which match regexp = 4'
   - iosvl2-1:
     - type: command
       transport: telnet
       in:
+      - term len 0
+      - 'sh etherchannel port-channel'
       - 'sh etherchannel port-channel | count Desirable-Sl'
       out:
       - 'Number of lines which match regexp = 4'
-

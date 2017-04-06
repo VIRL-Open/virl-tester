@@ -11,6 +11,7 @@ import os
 import textwrap
 import threading
 import yaml
+import jinja2
 
 from logging import DEBUG, INFO, WARN, ERROR, CRITICAL
 from time import sleep
@@ -240,6 +241,10 @@ def loadCfg(fh, lvl=0):
     if lvl > 10:
         raise yaml.scanner.ScannerError('recursion too deep')
 
+    def useTemplate(fh):
+        data = jinja2.Template(fh.read()).render(env=os.environ)
+        return yaml.load(data)
+
     """"this works around a Python3 vs Python2 issue.
     A file handle is of type io.TextIOWrapper in Py3 and of
     type file in Py2.
@@ -249,10 +254,10 @@ def loadCfg(fh, lvl=0):
       exception) --> it is a file
     """
     if isinstance(fh, TextIOWrapper) or isinstance(fh, file):
-        data = yaml.load(fh)
+        data = useTemplate(fh)
     else:
         with open(fh, 'r') as f:
-            data = yaml.load(f)
+            data = useTemplate(f)
     if data.get('sims') is None:
         data['sims'] = list()
     for sim in data['sims']:
