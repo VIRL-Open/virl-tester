@@ -3,9 +3,9 @@ from setuptools import setup, find_packages
 
 __author__ = "Ralph Schmieder"
 __author_email__ = "rschmied@cisco.com"
-__copyright__ = "Copyright (c) 2016 Cisco Systems, Inc."
+__copyright__ = "Copyright (c) 2017 Cisco Systems, Inc."
 __license__ = "MIT"
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 
 setup(name='virltester',
