@@ -5,7 +5,7 @@ __author__ = "Ralph Schmieder"
 __author_email__ = "rschmied@cisco.com"
 __copyright__ = "Copyright (c) 2017 Cisco Systems, Inc."
 __license__ = "MIT"
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 
 setup(name='virltester',
