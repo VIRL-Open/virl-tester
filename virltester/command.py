@@ -88,9 +88,10 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
             else:
                 interact.send('telnet %s' % dest_ip)
             interact.expect(USERNAME_PROMPT + PASSWORD_PROMPT + LXC_PROMPT)
-            done = re.search(r'Connection refused', interact.current_output_clean) is None
+            done = not interact.last_match in LXC_PROMPT
+            # done = re.search(r'Connection refused', interact.current_output_clean) is None
             if not done:
-                sim.log(logging.WARN, 'ATTENTION: connection refused (%s)' % attempts)
+                sim.log(logging.WARN, 'ATTENTION: connection issue (%s)' % attempts)
                 sleep(RETRY_SLEEP)
                 attempts -= 1
                 if attempts == 0:
@@ -152,6 +153,7 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
         sim.log(logging.CRITICAL, 'last match: [%s]' % interact.last_match)
         sim.sshClose()
         # write rest of output to file
+        fh.write('post-exception:')
         fh.write('<<< %s\n' % interact.current_output_clean.split('\n')[0])
         for oline in interact.current_output_clean.split('\n')[1:]:
             fh.write('    %s\n' % oline)
