@@ -23,7 +23,7 @@ The `WORKDIR` directory should have a consistent set of files for a basic smoke 
 - add the paramiko-expect fork: `pip install git+https://github.com/rschmied/paramiko-expect.git` 
 
 ```
-sudo apt install -y virtualenv
+sudo apt install -y virtualenv tmux
 virtualenv venv
 cd venv/
 source bin/activate
@@ -124,19 +124,22 @@ for i in $(seq 100); do { time virltester allnodes.yml ;}  >>main.log 2>&1 ; don
 
 
 ## Ideas
+- save start time in VIRL object and display a delta time when logging text
 - implement a better action handler (e.g. list of actions mapped to functions)
 - implement sim and action queueing (thread safety??)
 - add start/stop action for nodes in sim
 - add link up/down action for node interfaces
 - add link conditioning action for node interfaces
-- implement exception handling for API call failures
+- implement better exception handling for API call failures
 - implement negation of RE (e.g. 'not "100% ping loss"' string)
 - don't start by default, only when action 'start' is given
 - action 'wait to become active' or something
-- node filter based on nodes (e.g. 'filter "stage-2"') for each command
-- do not sim at end-action
+- node filter based on node labels (e.g. 'filter "stage-2"') for each command
+- 'do not stop sim at end'-action
 - prefix where log files should be written (cmd-line switch)
+- allow interaction with VIRL host node (via e.g. 172.16.1.254 or something that can be retrieved via roster... essentially, it's like a server node but with a different IP and username/password)
 
 ## Done
 - add getConsole for Sim / node
 - in case of sim not going active/reachable, implement a console fallback to check what's going on on the node
+- use Jinja2 templates to allow env variables and other substitutions in the YAML like "{{ env['VIRL_HOST'] or "localhost" }}"
