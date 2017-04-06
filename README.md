@@ -116,10 +116,21 @@ The WORKDIR directory has a set of files which test all existing node types (ref
 
 The test verifies that nodes come up fine and frames are forwarded. The `allnodes.yml` file does this for all node types (minus the XRv9000 as that one is currently broken).
 
-## Loops
+## Incantations
+
+See the `batch.sh` script that has a loop example plus some statistics. The below works too:
 
 ```bash
 for i in $(seq 100); do { time virltester allnodes.yml ;}  >>main.log 2>&1 ; done
+```
+
+Using Jinja, env vars can be included into the YAML files for e.g. hosts, usernames and passwords...:
+
+
+```bash
+# in the YAML:
+#   host: {{ env['VIRL_HOST'] or "localhost" }}
+$ VIRL_HOST=172.23.175.243 virltester -l4 iosv-single-test.yml
 ```
 
 
