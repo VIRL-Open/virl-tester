@@ -3,7 +3,7 @@
 from telnetlib import Telnet
 from socket import error as socket_error
 # from datetime import datetime
-from .prompts import CISCO_PROMPT, LINUX_PROMPT, USERNAME_PROMPT, PASSWORD_PROMPT
+from .prompts import CISCO_PROMPT, LINUX_PROMPT, USERNAME_PROMPT, PASSWORD_PROMPT, CISCO_NOPRIV
 import re
 import json
 
@@ -75,6 +75,7 @@ CRLF = '\r\n'
 PROMPT = [ p.encode(ENCODING) for p in CISCO_PROMPT + LINUX_PROMPT]
 UPRMPT = [ p.encode(ENCODING) for p in USERNAME_PROMPT]
 PPRMPT = [ p.encode(ENCODING) for p in PASSWORD_PROMPT]
+NOPRIV = [ CISCO_NOPRIV.encode(ENCODING) ]
 
 ''' we are assuming that the VMs which need a login are at the login prompt
     and have not been logged in at this point.
@@ -89,6 +90,9 @@ def sendLine(telnet, prompt, line):
     we then remove the prompt in the data.
     '''
     global LastMatch
+
+    if line is None:
+        return
 
     send_line = line.encode(ENCODING)
     # TODO: the following is a bit fishy:
@@ -128,7 +132,12 @@ def postMortem(sim, sim_node_id, device_type, host, port):
     init_cmd = st[3]
     show_cmd = st[4]
 
-    fh = open("pm-%s-%s.log" % (sim.simId, sim_node_id), "w")
+    if sim is not None:
+        fh = open("pm-%s-%s.log" % (sim.simId, sim_node_id), "w")
+    else:
+        import sys
+        fh = sys.stdout
+
     try:
         tn = Telnet(host, port)
     except socket_error as e:
@@ -148,10 +157,16 @@ def postMortem(sim, sim_node_id, device_type, host, port):
             sendLine(tn, PPRMPT, username)
             sendLine(tn, PROMPT, password)
 
-        # we expect a prompt at this point
+        # need to enable?
+        if myMatch(NOPRIV, LastMatch):
+            sendLine(tn, PPRMPT, 'enable')
+            sendLine(tn, PROMPT, secret)
+
+        # send the initialization (term length etc.)
         for line in init_cmd:
             sendLine(tn, PROMPT, line)
 
+        # send the actual show commands
         for line in show_cmd:
             p = sendLine(tn, PROMPT, line)
             if p is not None:
@@ -170,3 +185,4 @@ def postMortem(sim, sim_node_id, device_type, host, port):
 #postMortem(None, 'test', 'server', '172.23.175.245', 17022)
 #postMortem(None, 'test', 'NX-OSv 9000', '172.23.175.245', 17020)
 #postMortem(None, 'test', 'NX-OSv', '172.23.175.245', 17012)
+#postMortem(None, 'test', 'ASAv', '172.23.175.243', 17012)
