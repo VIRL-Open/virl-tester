@@ -66,20 +66,26 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
     else:
         fh = open(devnull, "w")
 
+    # this is the LXC prompt we expect
+    LXC_PROMPT = [r'%s@[\w-]+\$ ?' % sim.simUser]
+
+    # we need to get a prompt from the mgmt LXC
+    done = False
+    attempts = RETRY_ATTEMPTS
+    while not done:
+        try:
+            interact.send('')
+            interact.expect(LXC_PROMPT)
+        except socket_timeout:
+            sim.log(logging.WARN, 'ATTENTION: LXC issue (%s)' % attempts)
+            done = attempts > 0
+            attempts -= 1
+            sleep(RETRY_SLEEP)
+        else:
+            done = True
+
+    # interact with the target sourced from LXC mgmt host
     try:
-
-        LXC_PROMPT = [r'%s@[\w-]+\$ ?' % sim.simUser]
-
-        interact.send('')
-        interact.expect(LXC_PROMPT)
-
-        # for troubleshooting purposes
-        # seeing 'connection refused' for LXCs under overall load
-        # but they ping...
-        interact.send('ping -c2 %s' % dest_ip)
-        interact.expect(LXC_PROMPT)
-        # print('***past debug*** [%s]' % interact.last_match)
-
         done = False
         attempts = RETRY_ATTEMPTS
         while not done:
@@ -153,7 +159,7 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
         sim.log(logging.CRITICAL, 'last match: [%s]' % interact.last_match)
         sim.sshClose()
         # write rest of output to file
-        fh.write('post-exception:')
+        fh.write('\n\npost-exception:')
         fh.write('<<< %s\n' % interact.current_output_clean.split('\n')[0])
         for oline in interact.current_output_clean.split('\n')[1:]:
             fh.write('    %s\n' % oline)
