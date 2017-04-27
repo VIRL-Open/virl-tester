@@ -126,11 +126,7 @@ def postMortem(sim, sim_node_id, device_type, host, port):
         sim.log(logging.CRITICAL, 'postMortem: unknown device type [%s]' % device_type)
         return
 
-    username = st[0] 
-    password = st[1]
-    secret = st[2]
-    init_cmd = st[3]
-    show_cmd = st[4]
+    username, password, secret, init_cmd, show_cmd = st
 
     if sim is not None:
         fh = open("pm-%s-%s.log" % (sim.simId, sim_node_id), "w")
