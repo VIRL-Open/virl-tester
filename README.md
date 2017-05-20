@@ -16,8 +16,8 @@ The `WORKDIR` directory should have a consistent set of files for a basic smoke 
 **It requires Python3.**
 
 # Installation
-- create a virtual environment `pip -p /opt/local/bin/python3.5 VENV`
-- activate it `source VENV/bin/activate`
+- create a virtual environment `pip -p /opt/local/bin/python3.5 venv`
+- activate it `source venv/bin/activate`
 - install the library `pip install .` -or-
 - install it editable `pip install -e .`
 - add the paramiko-expect fork: `pip install git+https://github.com/rschmied/paramiko-expect.git` 
@@ -27,7 +27,14 @@ sudo apt install -y virtualenv tmux
 virtualenv venv
 cd venv/
 source bin/activate
-https_proxy="http://proxy.esl.cisco.com:80" pip install git+https://github.com/rschmied/paramiko-expect.git
+https_proxy="http://proxy-wsa.esl.cisco.com:80" pip install git+https://github.com/rschmied/paramiko-expect.git
+```
+
+to install the package:
+
+```
+http_proxy="http://proxy-wsa.esl.cisco.com:80" git clone http://rschmied@gitlab.cisco.com/rschmied/virltester.git
+-or-
 pip install git+http://gitlab.cisco.com/rschmied/virltester.git
 ```
 
