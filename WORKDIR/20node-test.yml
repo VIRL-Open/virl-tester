@@ -1,0 +1,41 @@
+#
+# ping test
+# from lxc-1     (10.0.0.50)
+# via  20 node network
+# to   lxc-2     (10.0.0.57)
+# 
+# ralph
+#
+
+config:
+  # the VIRL host
+  host: {{ env['VIRL_HOST'] or "localhost" }}
+  # username and password
+  user: {{ env['VIRL_USER'] or "guest" }}
+  password: {{ env['VIRL_PASS'] or "guest" }}
+  # loglevel (0-4, 4=Debug)
+  loglevel: 2
+  # default wait time (spinup / actions)
+  wait: 900
+  #parallel: 1
+
+
+sims:
+- topo: Topos/20node-test.virl
+  nodes:
+  - lxc-1:
+    - type: command
+      transport: ssh
+      sleep: 10
+      in:
+      - ping -c5 10.0.0.57
+      - ping -c5 10.0.0.57
+      out:
+      - \ 0% packet loss
+  - lxc-2:
+    - type: command
+      transport: ssh
+      in:
+      - ping -c5 10.0.0.50
+      out:
+      - \ 0% packet loss
