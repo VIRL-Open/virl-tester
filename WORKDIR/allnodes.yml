@@ -32,5 +32,6 @@ includes:
 - iosv-single-test.yml
 - port-channel-test.yml
 - iosvl2-single-test.yml
+- server-single-test.yml
 # IOS XRv9000 is horribly broken
 #- iosxrv-9000-single-test.yml
