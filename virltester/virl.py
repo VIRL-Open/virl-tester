@@ -384,37 +384,34 @@ class VIRLSim(object):
         the LXC can then be reached via the sim host on this port using
         SSH as the protocol.
         '''
+        if self._lxc_port is not None:
+            return self._lxc_port
+
         self._semaphore.acquire()
-        port = self._lxc_port
-        if port is None:
-            interfaces = self.getInterfaces('~mgmt-lxc')
-            if interfaces is not None:
-                for key, intfc in interfaces.items():
-                    if key != 'management' and \
-                       intfc.get('external-ip-address') is not None:
-                        port = int(intfc.get('external-port'))
-                        self.log(INFO, "Found LXC port: %s", port)
-                        self._lxc_port = port
-                        break
-                if port is None:
-                    self.log(ERROR, "Can't find LXC port")
+        interfaces = self.getInterfaces('~mgmt-lxc')
+        if interfaces is not None:
+            for key, intfc in interfaces.items():
+                if key != 'management' and \
+                   intfc.get('external-ip-address') is not None:
+                    self._lxc_port = int(intfc.get('external-port'))
+                    self.log(INFO, "Found LXC port: %s", self._lxc_port)
+                    break
+        if self._lxc_port is None:
+            self.log(ERROR, "Can't find LXC port")
         self._semaphore.release()
-        return port
+        return self._lxc_port
 
     def sshOpen(self, timeout=5):
         if self._ssh_interact is not None:
             return self._ssh_interact
 
         self.log(WARN, 'Acquiring LXC SSH session')
-        if self._lxc_port is None:
-            self.getLXCPort()
-
         self._ssh_client = paramiko.SSHClient()
         paramiko.hostkeys.HostKeys(filename=os.devnull)
         # client.load_system_host_keys()
         self._ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         self._ssh_client.connect(hostname=self._host, username=self._username,
-                                 password=self._password, port=self._lxc_port)
+                                 password=self._password, port=self.getLXCPort())
 
         self._ssh_interact = SSHClientInteraction(self._ssh_client, timeout=timeout,
                                                   display=self.isLogDebug())
@@ -427,3 +424,4 @@ class VIRLSim(object):
         self._ssh_interact.close()
         self._ssh_client.close()
         self._ssh_interact = self._ssh_client = None
+

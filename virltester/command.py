@@ -39,8 +39,8 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
     - timeout in seconds before the command interaction times out
     '''
 
-    RETRY_ATTEMPTS = 5
-    RETRY_SLEEP = 60
+    RETRY_ATTEMPTS = 8
+    RETRY_SLEEP = 120
 
     ok = False
     fh = None
@@ -97,10 +97,15 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
             done = not interact.last_match in LXC_PROMPT
             # done = re.search(r'Connection refused', interact.current_output_clean) is None
             if not done:
+                sim.log(logging.WARN, 'ATTENTION: [%s]' % interact.current_output_clean)
                 sim.log(logging.WARN, 'ATTENTION: connection issue (%s)' % attempts)
                 if attempts == 0:
                     raise socket_timeout
+                sim.sshClose() 
                 sleep(RETRY_SLEEP)
+                interact = sim.sshOpen(timeout)
+                interact.send('')
+                interact.expect(LXC_PROMPT)
                 attempts -= 1
 
         if transport == 'ssh':
@@ -163,7 +168,7 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
         fh.write('<<< %s\n' % interact.current_output_clean.split('\n')[0])
         for oline in interact.current_output_clean.split('\n')[1:]:
             fh.write('    %s\n' % oline)
-        #input('[enter to continue]')
+        # input('[enter to continue]')
 
     fh.close()
     sim._semaphore.release()

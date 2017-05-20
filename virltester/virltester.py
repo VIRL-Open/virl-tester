@@ -64,7 +64,7 @@ def doCommandAction(virl, name, action, log_output):
     logic = action.get('logic', 'one')  # RE match: match once or all
     in_cmd = action.get('in')
     out_re = action.get('out')
-    wait = action.get('wait', 5)
+    wait = action.get('wait', 30)
 
     # this stuff probably should all go into an Action class
     ok = False
