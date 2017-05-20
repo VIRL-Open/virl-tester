@@ -49,8 +49,8 @@ BEGIN {
 END {
   if (cycles > 0) {
     avg = sum / cycles;
-    printf("Cycles: %d Sims: %d Tests: %d Failed: %d Low: %s High: %s Average: %s          \r",
-      cycles, sims, tests, failed, ptime(lo), ptime(hi), ptime(avg));
+    printf("Cycles: %d Sims: %d Tests: %d Failed: %d Last: %s Low: %s High: %s Average: %s",
+      cycles, sims, tests, failed, ptime(time), ptime(lo), ptime(hi), ptime(avg));
   }
 }
 '
