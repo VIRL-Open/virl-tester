@@ -26,7 +26,7 @@ sims:
   - lxc-1:
     - type: command
       transport: ssh
-      sleep: 10
+      sleep: 30
       in:
       - ping -c5 10.0.0.57
       - ping -c5 10.0.0.57
