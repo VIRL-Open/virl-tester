@@ -91,7 +91,8 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
         attempts = RETRY_ATTEMPTS
         while not done:
             if transport == 'ssh':
-                interact.send('\nssh -v -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no %s@%s' % (DEVICE_U, dest_ip))
+                # interact.send('\nssh -v -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no %s@%s' % (DEVICE_U, dest_ip))
+                interact.send('ssh 2>&1 -v -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no %s@%s' % (DEVICE_U, dest_ip))
             else:
                 interact.send('telnet %s' % dest_ip)
             interact.expect(USERNAME_PROMPT + PASSWORD_PROMPT + LXC_PROMPT)
