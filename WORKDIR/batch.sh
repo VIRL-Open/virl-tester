@@ -60,6 +60,11 @@ status () {
     cat $LOG | awk "$awk_cmd" 
 }
 
+if [ "$1" = "-s" ]; then
+    status
+    exit
+fi
+
 trap stopit SIGINT
 
 CMD=$*
