@@ -2,7 +2,7 @@
 
 this is the README file for *virltester*
 
-to make it work with containers (like the mgmt LXC) you also do need to manually clone my fork of paramiko expect (see Installation section).
+> **Obsolete:** to make it work with containers (like the mgmt LXC) you also do need to manually clone my fork of paramiko expect (see Installation section).
 
 Lacks coherent Examples and better documentation in general. Some of them are
 plain wrong (as the YAML has evolved over time :) ) and some are redundant /
@@ -13,30 +13,52 @@ The Examples/test.yml and the simple.yml in the baseline directory in Examples
 
 The `WORKDIR` directory should have a consistent set of files for a basic smoke test.
 
-**It requires Python3.**
+**It runs Python2/3.**
 
 # Installation
-- create a virtual environment `pip -p /opt/local/bin/python3.5 venv`
-- activate it `source venv/bin/activate`
-- install the library `pip install .` -or-
-- install it editable `pip install -e .`
-- add the paramiko-expect fork: `pip install git+https://github.com/rschmied/paramiko-expect.git` 
+- create a virtual environment
+- activate it
+- clone repository (with proxy, if needed)
 
 ```
+# Python 2.x:
 sudo apt install -y virtualenv tmux
 virtualenv venv
-cd venv/
-source bin/activate
-https_proxy="http://proxy-wsa.esl.cisco.com:80" pip install git+https://github.com/rschmied/paramiko-expect.git
+source venv/bin/activate
+
+# Python 3.x:
+sudo apt install -y pip3 tmux
+pip -p /opt/local/bin/python3.5 venv
+source venv/bin/activate
 ```
 
-to install the package:
+then install the package:
 
 ```
-http_proxy="http://proxy-wsa.esl.cisco.com:80" git clone http://rschmied@gitlab.cisco.com/rschmied/virltester.git
+http_proxy="http://proxy-wsa.esl.cisco.com:80" \
+git clone http://rschmied@gitlab.cisco.com/rschmied/virltester.git
+```
+
+- install the library `pip install .` -or-
+- install it editable `pip install -e .`
+
 -or-
+
+```
+http_proxy="http://proxy-wsa.esl.cisco.com:80" \
 pip install git+http://gitlab.cisco.com/rschmied/virltester.git
 ```
+
+**Obsolete Install Items**  
+
+- add the paramiko-expect fork:
+
+```
+https_proxy="http://proxy-wsa.esl.cisco.com:80" \
+pip install git+https://github.com/rschmied/paramiko-expect.git
+```
+
+
 
 # Using the Tool
 
@@ -156,8 +178,10 @@ $ VIRL_HOST=172.23.175.243 virltester -l4 iosv-single-test.yml
 - 'do not stop sim at end'-action
 - prefix where log files should be written (cmd-line switch)
 - allow interaction with VIRL host node (via e.g. 172.16.1.254 or something that can be retrieved via roster... essentially, it's like a server node but with a different IP and username/password)
+- wait until crypto signing check is done on all nodes / load is below threshold on host??
 
 ## Done
 - add getConsole for Sim / node
 - in case of sim not going active/reachable, implement a console fallback to check what's going on on the node
 - use Jinja2 templates to allow env variables and other substitutions in the YAML like "{{ env['VIRL_HOST'] or "localhost" }}"
+- wait until sim is truly stopped option
