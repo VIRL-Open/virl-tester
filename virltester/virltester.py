@@ -133,7 +133,7 @@ def doSim(virl, sim):
                 for thread in threads:
                     thread.join()
             ok = True
-        virl.stopSim()
+        virl.stopSim(wait=True)
     if not ok:
         virl.log(CRITICAL, 'simulation %s failed' % virl.simId)
     return ok

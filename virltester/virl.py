@@ -101,6 +101,12 @@ class VIRLSim(object):
             return self._ssh_interact
         return self.sshOpen()
 
+    def _getInterval(self):
+        interval = self._timeout // self.INTERVAL
+        if interval == 0:
+            interval = self._timeout
+        return interval
+
     def startSim(self):
         '''This function will start a simulation using the provided .virl file
         '''
@@ -136,10 +142,6 @@ class VIRLSim(object):
         waits for self._timeout (default 5min)
         '''
         active = False
-        interval = self._timeout // self.INTERVAL
-        if interval == 0:
-            interval = self._timeout
-
         self.log(WARN, 'Waiting %ds to become active...', self._timeout)
 
         # for testing purposes
@@ -167,7 +169,7 @@ class VIRLSim(object):
 
             # wait if not
             if not active:
-                sleep(interval)
+                sleep(self._getInterval())
 
         # for testing purposes
         #active = False
@@ -195,7 +197,7 @@ class VIRLSim(object):
 
         return active
 
-    def stopSim(self):
+    def stopSim(self, wait=False):
         '''This function will stop the simulation
         '''
         self.log(WARN, 'Simulation stop...')
@@ -210,9 +212,20 @@ class VIRLSim(object):
         # Make an API call and assign the response information to the variable
         r = self._get('stop/%s' % self._sim_id)
 
-        # Check if call was successful, if true log it and exit the application
+        # Check if call was successful
         if r.status_code == 200:
             self.log(INFO, 'Simulation stop initiated.')
+
+            # should we wait until all nodes are stopped?
+            if wait:
+                status = self.getStatus()
+                while not status['state'] == "DONE":
+                    # print(dumps(status, indent=2))
+                    seconds = self._getInterval()
+                    self.log(INFO, 'sleeping %ds' % seconds)
+                    sleep(seconds)
+                    status = self.getStatus()
+            self._sim_id = None
 
     def getNodeDetail(self, node):
         '''Get the node subtype and console port of the given node
@@ -305,10 +318,6 @@ class VIRLSim(object):
             wait = self._timeout
 
         done = False
-        interval = wait // self.INTERVAL
-        if interval == 0:
-            interval = wait
-
         self.log(INFO, 'Waiting %ds for capture [%s]', wait, capId)
 
         endtime = datetime.utcnow() + timedelta(seconds=wait)
@@ -329,7 +338,7 @@ class VIRLSim(object):
 
             # wait if not
             if not done:
-                sleep(interval)
+                sleep(self.getInterval())
 
         if done:
             self.log(WARN, "Capture has finished.")
