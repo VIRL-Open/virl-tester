@@ -85,7 +85,7 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
             done = True
 
     # interact with the target sourced from LXC mgmt host
-    sim.log(logging.WARN, 'got initial prompt')
+    sim.log(logging.INFO, 'got initial prompt')
     try:
         done = False
         attempts = RETRY_ATTEMPTS

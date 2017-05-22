@@ -225,6 +225,7 @@ class VIRLSim(object):
                     self.log(INFO, 'sleeping %ds' % seconds)
                     sleep(seconds)
                     status = self.getStatus()
+                self.log(INFO, 'Simulation finally stopped.')
             self._sim_id = None
 
     def getNodeDetail(self, node):
