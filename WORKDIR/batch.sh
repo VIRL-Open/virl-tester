@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CYCLES=100
+CYCLES=20
 BREAK=0
 LOG="main.log"
 
@@ -49,7 +49,7 @@ BEGIN {
 END {
   if (cycles > 0) {
     avg = sum / cycles;
-    printf("Cycles: %d Sims: %d Tests: %d Failed: %d Last: %s Low: %s High: %s Average: %s",
+    printf("Cycles: %d Sims: %d Tests: %d Failed: %d Last: %s Low: %s High: %s Average: %s\n",
       cycles, sims, tests, failed, ptime(time), ptime(lo), ptime(hi), ptime(avg));
   }
 }
@@ -68,7 +68,7 @@ CMD=$*
 echo "Doing $CYCLES runs of $CMD..."
 
 for i in $(seq $CYCLES); do 
-    { time virltester $CMD ;} >>$LOG 2>&1
+    { time virltester -l3 $CMD ;} >>$LOG 2>&1
     test $BREAK -eq 1 && break
     status
 done

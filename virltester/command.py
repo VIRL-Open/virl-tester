@@ -85,19 +85,21 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
             done = True
 
     # interact with the target sourced from LXC mgmt host
+    sim.log(logging.WARN, 'got initial prompt')
     try:
         done = False
         attempts = RETRY_ATTEMPTS
         while not done:
             if transport == 'ssh':
-                interact.send('ssh %s@%s' % (DEVICE_U, dest_ip))
+                interact.send('\nssh -v -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no %s@%s' % (DEVICE_U, dest_ip))
             else:
                 interact.send('telnet %s' % dest_ip)
             interact.expect(USERNAME_PROMPT + PASSWORD_PROMPT + LXC_PROMPT)
             done = not interact.last_match in LXC_PROMPT
             # done = re.search(r'Connection refused', interact.current_output_clean) is None
             if not done:
-                sim.log(logging.WARN, 'ATTENTION: [%s]' % interact.current_output_clean)
+                sim.log(logging.WARN, 'ATTENTION: [%s]' % interact.current_output_clean.replace('\n', '\\n'))
+                sim.log(logging.WARN, 'ATTENTION: last match: [%s]' % interact.last_match)
                 sim.log(logging.WARN, 'ATTENTION: connection issue (%s)' % attempts)
                 if attempts == 0:
                     raise socket_timeout
@@ -108,6 +110,7 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
                 interact.expect(LXC_PROMPT)
                 attempts -= 1
 
+        sim.log(logging.INFO, 'logged in to target')
         if transport == 'ssh':
             interact.send(DEVICE_P)
         if transport == 'telnet':
