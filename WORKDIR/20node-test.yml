@@ -2,7 +2,9 @@
 # ping test
 # from lxc-1     (10.0.0.50)
 # via  20 node network
-# to   lxc-2     (10.0.0.57)
+# to   lxc-2     (10.0.0.33)
+# to   lxc-3     (10.0.0.41)
+# to   lxc-4     (10.0.0.57)
 # 
 # ralph
 #
@@ -26,13 +28,74 @@ sims:
   - lxc-1:
     - type: command
       transport: ssh
-      sleep: 30
+      sleep: 240
       in:
-      - ping -c5 10.0.0.57
       - ping -c5 10.0.0.57
       out:
       - \ 0% packet loss
+    - type: command
+      transport: ssh
+      in:
+      - ping -c5 10.0.0.41
+      out:
+      - \ 0% packet loss
+    - type: command
+      transport: ssh
+      in:
+      - ping -c5 10.0.0.33
+      out:
+      - \ 0% packet loss
   - lxc-2:
+    - type: command
+      transport: ssh
+      in:
+      - ping -c5 10.0.0.50
+      out:
+      - \ 0% packet loss
+    - type: command
+      transport: ssh
+      in:
+      - ping -c5 10.0.0.41
+      out:
+      - \ 0% packet loss
+    - type: command
+      transport: ssh
+      in:
+      - ping -c5 10.0.0.57
+      out:
+      - \ 0% packet loss
+  - lxc-3:
+    - type: command
+      transport: ssh
+      in:
+      - ping -c5 10.0.0.50
+      out:
+      - \ 0% packet loss
+    - type: command
+      transport: ssh
+      in:
+      - ping -c5 10.0.0.33
+      out:
+      - \ 0% packet loss
+    - type: command
+      transport: ssh
+      in:
+      - ping -c5 10.0.0.57
+      out:
+      - \ 0% packet loss
+  - lxc-4:
+    - type: command
+      transport: ssh
+      in:
+      - ping -c5 10.0.0.33
+      out:
+      - \ 0% packet loss
+    - type: command
+      transport: ssh
+      in:
+      - ping -c5 10.0.0.41
+      out:
+      - \ 0% packet loss
     - type: command
       transport: ssh
       in:
