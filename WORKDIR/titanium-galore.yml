@@ -27,11 +27,16 @@ sims:
 - topo: Topos/titanium-galore-fix.virl
   nodes:
   - nx-osv-1:
-    - type: command
+    - type: converge
       sleep: 20
       transport: telnet
       in:
       - ping 10.0.0.77
+      out:
+      - \ 5 packets received
+    - type: command
+      transport: telnet
+      in:
       - ping 10.0.0.77
       out:
       - \ 5 packets received
