@@ -226,7 +226,9 @@ class VIRLSim(object):
                     sleep(seconds)
                     status = self.getStatus()
                 self.log(INFO, 'Simulation finally stopped.')
-            self._sim_id = None
+            # we might rely on the _sim_id after stop
+            # for logging purposes.
+            # self._sim_id = None
 
     def getNodeDetail(self, node):
         '''Get the node subtype and console port of the given node
