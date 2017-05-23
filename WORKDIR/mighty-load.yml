@@ -1,0 +1,29 @@
+#
+# for all node types do a basic ping test
+# from lxc-1
+# via  DuT
+# to   lxc-2
+# 
+# ralph, 08-Mar-2017
+#
+
+config:
+  # the VIRL host
+  host: {{ env['VIRL_HOST'] or "localhost" }}
+  # username and password
+  user: {{ env['VIRL_USER'] or "guest" }}
+  password: {{ env['VIRL_PASS'] or "guest" }}
+  # loglevel (0-4, 4=Debug)
+  loglevel: 3
+  # default wait time (spinup / actions)
+  # needs more time for some node types if we
+  # spin up sims in parallel (single sims are
+  # OK with 300s). Just to be on the safe side
+  wait: 600
+  parallel: 4
+
+includes:
+- 20node-test.yml
+- 20node-test.yml
+- 20node-test.yml
+- 20node-test.yml
