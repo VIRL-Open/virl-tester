@@ -22,12 +22,12 @@ The `WORKDIR` directory should have a consistent set of files for a basic smoke 
 
 ```
 # Python 2.x:
-sudo apt install -y virtualenv tmux
+sudo apt update && sudo apt install -y virtualenv tmux jq
 virtualenv venv
 source venv/bin/activate
 
 # Python 3.x:
-sudo apt install -y pip3 tmux
+sudo apt update && sudo apt install -y pip3 tmux jq
 pip -p /opt/local/bin/python3.5 venv
 source venv/bin/activate
 ```
@@ -187,3 +187,9 @@ $ VIRL_HOST=172.23.175.243 virltester -l4 iosv-single-test.yml
 	- wait until crypto signing check is done on all nodes / load is below threshold on host??
 
 - implement negation of RE (e.g. 'not "100% ping loss"' string) (e.g. by providing "logic: !one" or "logic: !all" statements for action)
+
+# VIRL Lab testing specific things
+
+http_proxy="http://proxy-wsa.esl.cisco.com:80" git clone http://rschmied@gitlab.cisco.com/rschmied/virltester.git
+
+https_proxy="http://proxy-wsa.esl.cisco.com:80" curl https://raw.githubusercontent.com/virlos/virl-salt/virl_servertool/virl/files/virl_setup.py >virl_setup.py
