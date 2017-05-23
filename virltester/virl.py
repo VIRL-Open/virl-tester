@@ -192,7 +192,7 @@ class VIRLSim(object):
             for name, node in nodes.items():
                 state = node['state']
                 reachable = node['reachable']
-                if not(state == 'ACTIVE' and reachable):
+                if state == 'ACTIVE' and not reachable:
                     self.log(ERROR, "%s: %s, %s", name, state, reachable)
 
                     subtype, serial_port = self.getNodeDetail(name)
