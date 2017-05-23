@@ -28,7 +28,7 @@ LOGDEFAULT = 2
 BUSYWAIT = 5
 
 
-def initialSleep(virl, seq, name, action):
+def initialSleep(virl, seq, action):
     sleeptimer = action.get('sleep', 0)
     if sleeptimer > 0:
         virl.log(WARN, "(%d) initial sleep %ss", seq, sleeptimer)
@@ -48,7 +48,7 @@ def doCaptureAction(virl, name, action):
     bg_indicator = '*' if bg else ''
     virl.log(WARN, '(%s%d) filter: %s %s', bg_indicator, seq, name, intfc)
 
-    initialSleep(virl, seq, __name__, action)
+    initialSleep(virl, seq, action)
     capId = virl.createCapture(name, intfc, pcap, count)
     ok = False
     if capId is not None and virl.waitForCapture(capId, wait):
@@ -59,7 +59,32 @@ def doCaptureAction(virl, name, action):
     action['success'] = ok
 
 
-def doCommandAction(virl, name, action, log_output):
+def doConvergeAction(virl, name, action, log_output):
+    '''similar to command but will be called into a loop until it succeeds or
+    max wait exceeded.
+    essentially a command that will determine when the simulation has converged
+    after it became active/reachable. e.g.
+    - specific route entry in table
+    - route table n-entries long
+    - ping succeeds to IP 1.2.3.4
+    - ...
+    only after 
+    '''
+
+    converged = False
+    waited = 0
+
+    while True:
+        doCommandAction(virl, name, action, False, converge=True)
+        if action['success'] or waited > virl.simTimeout / 2:
+            break
+        virl.log(INFO, "waiting to converge... %d" % waited)
+        sleep(virl.simPollInterval)
+        waited += virl.simPollInterval
+        action['sleep'] = 0
+
+
+def doCommandAction(virl, name, action, log_output, converge=False):
     transport = action.get('transport', 'telnet')
     logic = action.get('logic', 'one')  # RE match: match once or all
     in_cmd = action.get('in')
@@ -71,8 +96,9 @@ def doCommandAction(virl, name, action, log_output):
     seq = action['_seq']
     bg = action.get('background', False)
     bg_indicator = '*' if bg else ''
-    virl.log(WARN, '(%s%d) command: %s %s', bg_indicator, seq, name, in_cmd)
-    initialSleep(virl, seq, __name__, action)
+    label = 'converge' if converge else 'command'
+    virl.log(WARN, '(%s%d) %s: %s %s', bg_indicator, seq, label, name, in_cmd)
+    initialSleep(virl, seq, action)
 
     # get the IP of the mgmt LXC for SSH
     address = virl.getMgmtIP(name)
@@ -83,9 +109,13 @@ def doCommandAction(virl, name, action, log_output):
             logname = None
         ok = interaction(virl, logname, address, transport,
                          in_cmd, out_re, logic, wait)
-        level = WARN if ok else ERROR
-        label = 'SUCCEED' if ok else 'FAIL' 
-        virl.log(level, "(%d) command %sED", action['_seq'], label)
+        if not converge:
+            level = WARN if ok else ERROR
+            label = 'SUCCEEDED' if ok else 'FAILED'
+        else:
+            level = WARN
+            label = 'CONVERGED' if ok else 'WAITING'
+        virl.log(level, "(%d) command %s", action['_seq'], label)
     action['success'] = ok
 
 
@@ -124,6 +154,15 @@ def doSim(virl, sim):
                             log_output = sim.get('log', True)
                             doAction(doCommandAction, threads, virl,
                                      name, action, log_output)
+                            continue
+
+                        if action_type == 'converge':
+                            log_output = sim.get('log', True)
+                            doAction(doConvergeAction, threads, virl,
+                                     name, action, log_output)
+                            if not action['success']:
+                                virl.log(CRITICAL, 'Sim did not converge! break action list')
+                                break
                             continue
 
                         virl.log(CRITICAL, 'unknown action %s' % action_type)
@@ -252,8 +291,15 @@ def loadCfg(fh, lvl=0):
     - in py2 it is False or True --> it is a file!
     - in py3 it is True or (not evaluated but it would cause an
       exception) --> it is a file
+
+    Update: Well, if this is an included file then the var will
+    be of type string and in Py3 it will check against 'file'
+    which still causes an exception. Ah, crap.
     """
-    if isinstance(fh, TextIOWrapper) or isinstance(fh, file):
+
+    # if isinstance(fh, TextIOWrapper) or isinstance(fh, file):
+    # this misses unicode strings in python2
+    if not isinstance(fh, str):
         data = useTemplate(fh)
     else:
         with open(fh, 'r') as f:

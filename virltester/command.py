@@ -25,7 +25,7 @@ net_connect.disconnect()
 '''
 
 
-def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, timeout):
+def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, timeout, converge=False):
     '''interact with sim nodes via the LXC host (client).
     - sim is the current simulation
     - logname is the name of the node for the log filename 
@@ -37,6 +37,9 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
     - if logic is 'all', then all of the REs in output_re must match
       if logic is 'one', then at least one of the REs must match
     - timeout in seconds before the command interaction times out
+    - converge is True if this is to check whether sim converged
+      in this case, failure is OK, no logging if timeout / fail
+      converge does not create a log file.
     '''
 
     RETRY_ATTEMPTS = 8
@@ -49,10 +52,12 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
     if transport not in ['ssh', 'telnet']:
         sim.log(logging.CRITICAL, 'unknown transport (not ssh or telnet)')
         return ok
-    if logic not in ['all', 'one']:
-        sim.log(logging.CRITICAL, 'unknown logic (not all or one)')
+    if logic not in ['all', 'one', '!all', '!one']:
+        sim.log(logging.CRITICAL, 'unknown logic, valid: "[!]all, [!]one"')
         return ok
-    sim.log(logging.DEBUG, 'transport: %s, logic: %s', transport, logic)
+    negate = '!' in logic
+    logic = logic.replace('!', '')
+    sim.log(logging.DEBUG, 'transport: %s, negate: %s, logic: %s', transport, negate, logic)
 
     # open the SSH connection to the node
     interact = sim.sshOpen(timeout)
@@ -60,7 +65,7 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
     sim._semaphore.acquire()
 
     # get a logfile
-    if logname is not None:
+    if logname is not None and not converge:
         filename = "%s-%s.log" % (datetime.utcnow().strftime('%Y%m%d%H%M%S'), logname)
         fh = open(filename, "w")
     else:
@@ -158,21 +163,27 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
                     break
             if lines_found > 0 and logic == 'one':
                 break
-        ok = lines_found == len(output_re) or lines_found > 0 and logic == 'one'
+        # xor with negate is the result
+        ok = negate != (lines_found == len(output_re) or lines_found > 0 and logic == 'one')
 
         # logout from the router
         interact.send('exit')
         interact.expect(LXC_PROMPT)
+
     except socket_timeout:
-        sim.log(logging.CRITICAL, 'command interaction timed out (%ds)' % timeout)
-        sim.log(logging.CRITICAL, 'last match: [%s]' % interact.last_match)
-        sim.sshClose()
-        # write rest of output to file
-        fh.write('\n\npost-exception:')
-        fh.write('<<< %s\n' % interact.current_output_clean.split('\n')[0])
-        for oline in interact.current_output_clean.split('\n')[1:]:
-            fh.write('    %s\n' % oline)
-        # input('[enter to continue]')
+        if not converge:
+            sim.log(logging.CRITICAL, 'command interaction timed out (%ds)' % timeout)
+            sim.log(logging.CRITICAL, 'last match: [%s]' % interact.last_match)
+            sim.sshClose()
+            # write rest of output to file
+            fh.write('\n\npost-exception:')
+            fh.write('<<< %s\n' % interact.current_output_clean.split('\n')[0])
+            for oline in interact.current_output_clean.split('\n')[1:]:
+                fh.write('    %s\n' % oline)
+            # input('[enter to continue]')
+        else:
+            sim.log(logging.DEBUG, 'waiting for convergence')
+            pass
 
     fh.close()
     sim._semaphore.release()

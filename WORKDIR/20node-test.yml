@@ -26,9 +26,16 @@ sims:
 - topo: Topos/20node-test.virl
   nodes:
   - lxc-1:
+    - type: converge
+      transport: ssh
+      sleep: 30
+      wait: 5
+      in:
+      - ping -W1 -c1 10.0.0.57
+      out:
+      - \ 0% packet loss    
     - type: command
       transport: ssh
-      sleep: 240
       in:
       - ping -c5 10.0.0.57
       out:

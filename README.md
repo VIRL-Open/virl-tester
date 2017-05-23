@@ -171,17 +171,19 @@ $ VIRL_HOST=172.23.175.243 virltester -l4 iosv-single-test.yml
 - add link up/down action for node interfaces
 - add link conditioning action for node interfaces
 - implement better exception handling for API call failures
-- implement negation of RE (e.g. 'not "100% ping loss"' string)
 - don't start by default, only when action 'start' is given
-- action 'wait to become active' or something
 - node filter based on node labels (e.g. 'filter "stage-2"') for each command
 - 'do not stop sim at end'-action
 - prefix where log files should be written (cmd-line switch)
 - allow interaction with VIRL host node (via e.g. 172.16.1.254 or something that can be retrieved via roster... essentially, it's like a server node but with a different IP and username/password)
-- wait until crypto signing check is done on all nodes / load is below threshold on host??
 
 ## Done
 - add getConsole for Sim / node
 - in case of sim not going active/reachable, implement a console fallback to check what's going on on the node
 - use Jinja2 templates to allow env variables and other substitutions in the YAML like "{{ env['VIRL_HOST'] or "localhost" }}"
 - wait until sim is truly stopped option
+- wait until sim is converged based on a given command / sequence of commands
+	- action 'wait to become active' or something
+	- wait until crypto signing check is done on all nodes / load is below threshold on host??
+
+- implement negation of RE (e.g. 'not "100% ping loss"' string) (e.g. by providing "logic: !one" or "logic: !all" statements for action)

@@ -96,12 +96,17 @@ class VIRLSim(object):
         return self._password
 
     @property
+    def simTimeout(self):
+        return self._timeout
+
+    @property
     def sshInteract(self):
         if self._ssh_interact is not None:
             return self._ssh_interact
         return self.sshOpen()
 
-    def _getInterval(self):
+    @property
+    def simPollInterval(self):
         interval = self._timeout // self.INTERVAL
         if interval == 0:
             interval = self._timeout
@@ -169,7 +174,7 @@ class VIRLSim(object):
 
             # wait if not
             if not active:
-                sleep(self._getInterval())
+                sleep(self.simPollInterval)
 
         # for testing purposes
         #active = False
@@ -221,7 +226,7 @@ class VIRLSim(object):
                 status = self.getStatus()
                 while not status['state'] == "DONE":
                     # print(dumps(status, indent=2))
-                    seconds = self._getInterval()
+                    seconds = self.simPollInterval
                     self.log(INFO, 'sleeping %ds' % seconds)
                     sleep(seconds)
                     status = self.getStatus()
@@ -341,7 +346,7 @@ class VIRLSim(object):
 
             # wait if not
             if not done:
-                sleep(self.getInterval())
+                sleep(self.simPollInterval)
 
         if done:
             self.log(WARN, "Capture has finished.")

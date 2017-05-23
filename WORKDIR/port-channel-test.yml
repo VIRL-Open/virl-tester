@@ -50,10 +50,16 @@ sims:
 - topo: Topos/l2-portchannel-test.virl
   nodes:
   - lxc-1:
+    - type: converge
+      transport: ssh
+      sleep: 30
+      wait: 5
+      in:
+      - ping -W1 -c1 10.0.0.10
+      out:
+      - \ 0% packet loss
     - type: command
       transport: ssh
-      sleep: 120
-      wait: 10
       in:
       - ping -W1 -c1 10.0.0.10
       - ping -c5 10.0.0.10
@@ -62,7 +68,6 @@ sims:
   - lxc-2:
     - type: command
       transport: ssh
-      wait: 10
       in:
       - ping -W1 -c1 10.0.0.6
       - ping -c5 10.0.0.6
@@ -71,7 +76,6 @@ sims:
   - lxc-3:
     - type: command
       transport: ssh
-      wait: 10
       in:
       - ping -W1 -c1 10.0.0.14
       - ping -c5 10.0.0.14

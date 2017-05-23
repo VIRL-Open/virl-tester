@@ -24,24 +24,25 @@ sims:
 - topo: Topos/nxosv-single-test.virl
   nodes:
   - lxc-1:
-    - type: command
+    - type: converge
       transport: ssh
       sleep: 10
-      wait: 10
       # first ping seems to get lost
       # ping twice then.
       in:
       - ping -W1 -c1 10.0.0.9
+      out:
+      - \ 0% packet loss
+    - type: command
+      transport: ssh
+      in:
       - ping -c5 10.0.0.9
       out:
       - \ 0% packet loss
   - lxc-2:
     - type: command
       transport: ssh
-      sleep: 10
-      wait: 10
       in:
-      - ping -W1 -c1 10.0.0.5
       - ping -c5 10.0.0.5
       out:
       - \ 0% packet loss
