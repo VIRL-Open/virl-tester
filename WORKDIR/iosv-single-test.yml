@@ -41,3 +41,15 @@ sims:
       - ping -c5 10.0.0.6
       out:
       - \ 0% packet loss
+  - iosv-1:
+    - type: command
+      transport: telnet
+      in:
+      - term len 0
+      - show version
+      - conf t
+      - hostname mychangedname
+      - end
+      - show run
+      out:
+      - ''
