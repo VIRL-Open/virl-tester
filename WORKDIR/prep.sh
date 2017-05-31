@@ -10,7 +10,7 @@ doesImageExist () {
 
 image () {
     if ! [ $(doesImageExist docker-$1) ]; then
-        virl_uwm_client docker-image-create --subtype docker --version $1 --image-url $1
+        virl_uwm_client --timeout 120 docker-image-create --subtype docker --version $1 --image-url $1
     fi
 }
 
