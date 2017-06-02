@@ -12,6 +12,8 @@
 config:
   # the VIRL host
   host: {{ env['VIRL_HOST'] or "localhost" }}
+  port: {{ env['VIRL_PORT'] or 19399 }}
+
   # username and password
   user: {{ env['VIRL_USER'] or "guest" }}
   password: {{ env['VIRL_PASS'] or "guest" }}

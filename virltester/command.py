@@ -61,6 +61,9 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
 
     # open the SSH connection to the node
     interact = sim.sshOpen(timeout)
+    if interact is None:
+        return False
+
     # make sure only one at a time
     sim._semaphore.acquire()
 

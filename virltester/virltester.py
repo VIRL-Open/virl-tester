@@ -213,8 +213,11 @@ def doAllSims(cmdfile, logger=None):
             workdir = cmdfile.get('_workdir', '')
             topo = os.path.join(workdir, sim['topo'])
             wait = sim.get('wait', cfg_wait)
-            virl = VIRLSim(cfg['host'], cfg['user'], cfg['password'],
-                           topo, logger, timeout=wait)
+            virl = VIRLSim(cfg.get('host', 'virl'),
+                cfg.get('user', 'guest'),
+                cfg.get('password', 'guest'),
+                topo, logger, timeout=wait,
+                port=cfg.get('port', 19399))
 
             # for testing purposes
             #virl._sim_id = 'csr1kv-single-test-Uw32MT'
@@ -255,7 +258,7 @@ def doAllSims(cmdfile, logger=None):
     for sim in cmdfile['sims']:
         if sim.get('skip', False):
             continue
-        for node in sim['nodes']:
+        for node in sim.get('nodes', list()):
             for actions in node.values():
                 for action in actions:
                     total += 1

@@ -39,6 +39,13 @@ http_proxy="http://proxy-wsa.esl.cisco.com:80" \
 git clone http://rschmied@gitlab.cisco.com/rschmied/virltester.git
 ```
 
+New Repo:
+
+```
+http_proxy="http://proxy-wsa.esl.cisco.com:80" \
+git clone https://wwwin-gitlab-sjc.cisco.com/rschmied/virl-tester.git
+```
+
 - install the library `pip install .` -or-
 - install it editable `pip install -e .`
 

@@ -413,6 +413,12 @@ class VIRLSim(object):
                     self._lxc_port = int(intfc.get('external-port'))
                     self.log(INFO, "Found LXC port: %s", self._lxc_port)
                     break
+
+        # crude hack to make it work with ngrok
+        tmp_lxc = os.environ.get('VIRL_LXC_PORT', None)
+        if tmp_lxc is not None:
+            self._lxc_port = int(tmp_lxc)
+
         if self._lxc_port is None:
             self.log(ERROR, "Can't find LXC port")
         self._semaphore.release()
@@ -427,8 +433,12 @@ class VIRLSim(object):
         paramiko.hostkeys.HostKeys(filename=os.devnull)
         # client.load_system_host_keys()
         self._ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self._ssh_client.connect(hostname=self._host, username=self._username,
-                                 password=self._password, port=self.getLXCPort())
+        try:
+            self._ssh_client.connect(hostname=self._host, username=self._username,
+                                     password=self._password, port=self.getLXCPort())
+        except paramiko.AuthenticationException as e:
+            self.log(CRITICAL, 'SSH connect failed: %s' % e)
+            return None
 
         self._ssh_interact = SSHClientInteraction(self._ssh_client, timeout=timeout,
                                                   display=self.isLogDebug())
