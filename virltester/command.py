@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from .prompts import USERNAME_PROMPT, PASSWORD_PROMPT, CISCO_NOPRIV, PROMPT, DEVICE_U, DEVICE_P
-from socket import timeout as socket_timeout
+import socket
 import re
 import logging
 from threading import Semaphore
@@ -84,11 +84,18 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
         try:
             interact.send('')
             interact.expect(LXC_PROMPT)
-        except socket_timeout:
-            sim.log(logging.WARN, 'ATTENTION: LXC issue (%s)' % attempts)
+        except socket.timeout as e:
+            sim.log(logging.WARN, 'ATTENTION: LXC issue (%s, %s)' % attempts, e)
             done = attempts > 0
             attempts -= 1
             sleep(RETRY_SLEEP)
+        except socket.error as e:
+            sim.log(logging.CRITICAL, 'SSH error (%s)' % e)
+            interact = sim.sshOpen(timeout)
+            if interact is None:
+                sim._semaphore.release()
+                fh.close()
+                return False
         else:
             done = True
 
@@ -111,7 +118,7 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
                 sim.log(logging.WARN, 'ATTENTION: last match: [%s]' % interact.last_match)
                 sim.log(logging.WARN, 'ATTENTION: connection issue (%s)' % attempts)
                 if attempts == 0:
-                    raise socket_timeout
+                    raise socket.timeout
                 sim.sshClose() 
                 sleep(RETRY_SLEEP)
                 interact = sim.sshOpen(timeout)
@@ -173,7 +180,7 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
         interact.send('exit')
         interact.expect(LXC_PROMPT)
 
-    except socket_timeout:
+    except socket.timeout:
         if not converge:
             sim.log(logging.CRITICAL, 'command interaction timed out (%ds)' % timeout)
             sim.log(logging.CRITICAL, 'last match: [%s]' % interact.last_match)

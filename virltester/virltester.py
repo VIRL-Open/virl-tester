@@ -125,6 +125,7 @@ def doAction(func, threads, virl, name, action, *args):
         new_args = [virl, name, action] + list(args)
         t = threading.Thread(target=func, args=new_args)
         t.daemon = True
+        t.name = virl._sim_id
         threads.append(t)
         t.start()
     else:

@@ -436,7 +436,8 @@ class VIRLSim(object):
         try:
             self._ssh_client.connect(hostname=self._host, username=self._username,
                                      password=self._password, port=self.getLXCPort())
-        except paramiko.AuthenticationException as e:
+        except (paramiko.AuthenticationException,
+               paramiko.SSHException) as e:
             self.log(CRITICAL, 'SSH connect failed: %s' % e)
             return None
 
