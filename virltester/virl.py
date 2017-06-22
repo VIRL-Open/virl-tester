@@ -35,6 +35,7 @@ class VIRLSim(object):
         self._session.auth = (user, password)
         self._sim_id = None
         self._lxc_port = None
+        self._lxc_host = host
         self._no_start = False
         self._semaphore = Semaphore()
         self._ssh_client = None
@@ -418,6 +419,9 @@ class VIRLSim(object):
         tmp_lxc = os.environ.get('VIRL_LXC_PORT', None)
         if tmp_lxc is not None:
             self._lxc_port = int(tmp_lxc)
+        tmp_host = os.environ.get('VIRL_LXC_HOST', None)
+        if tmp_host is not None:
+            self._lxc_host = tmp_host
 
         if self._lxc_port is None:
             self.log(ERROR, "Can't find LXC port")
@@ -434,7 +438,7 @@ class VIRLSim(object):
         # client.load_system_host_keys()
         self._ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
-            self._ssh_client.connect(hostname=self._host, username=self._username,
+            self._ssh_client.connect(hostname=self._lxc_host, username=self._username,
                                      password=self._password, port=self.getLXCPort())
         except (paramiko.AuthenticationException,
                paramiko.SSHException) as e:

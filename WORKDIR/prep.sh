@@ -26,3 +26,6 @@ image nginx
 ! [[ $(glance image-list) =~ "IOS XRv" ]] && sudo salt-call -linfo state.sls virl.routervms.iosxrv
 ! [[ $(glance image-list) =~ "IOSv" ]] && sudo salt-call -linfo state.sls virl.routervms.iosv
 ! [[ $(glance image-list) =~ "IOSvL2" ]] && sudo salt-call -linfo state.sls virl.routervms.iosvl2
+
+
+# virl_uwm_client lxc-image-create --subtype lxc-iperf --version lxc-iperf-standard --image-path /home/virl/lxc-iperf-standard.tar.gz
