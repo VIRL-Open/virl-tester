@@ -437,9 +437,12 @@ class VIRLSim(object):
         paramiko.hostkeys.HostKeys(filename=os.devnull)
         # client.load_system_host_keys()
         self._ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        # the below might update self._lxc_host if the env var is set during
+        # the execution of getLXCPort().
+        port = self.getLXCPort()
         try:
             self._ssh_client.connect(hostname=self._lxc_host, username=self._username,
-                                     password=self._password, port=self.getLXCPort())
+                                     password=self._password, port=port)
         except (paramiko.AuthenticationException,
                paramiko.SSHException) as e:
             self.log(CRITICAL, 'SSH connect failed: %s' % e)
