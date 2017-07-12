@@ -8,6 +8,8 @@ from .virl import VIRLSim
 import logging
 import argparse
 import os
+import re
+import netaddr
 import textwrap
 import threading
 import yaml
@@ -28,7 +30,26 @@ LOGDEFAULT = 2
 BUSYWAIT = 5
 
 
-def initialSleep(virl, seq, action):
+def is_valid_hostname(hostname):
+    "https://stackoverflow.com/questions/2532053/validate-a-hostname-string"
+    if len(hostname) > 255:
+        return False
+    if hostname[-1] == ".":
+        hostname = hostname[:-1] # strip exactly one dot from the right, if present
+    allowed = re.compile("(?!-)[A-Z\d-]{1,63}(?<!-)$", re.IGNORECASE)
+    return all(allowed.match(x) for x in hostname.split("."))
+
+
+def str_to_ip(s):
+    """converts the given string into an IP (v4 or v6), returns the
+    IPAddress object or none if no IP could be converted"""
+    try:
+        return netaddr.IPAddress(s)
+    except netaddr.core.AddrFormatError:
+        return None
+
+
+def initial_sleep(virl, seq, action):
     sleeptimer = action.get('sleep', 0)
     if sleeptimer > 0:
         virl.log(WARN, "(%d) initial sleep %ss", seq, sleeptimer)
@@ -36,7 +57,7 @@ def initialSleep(virl, seq, action):
         virl.log(WARN, "(%d) initial sleep done", seq)
 
 
-def doCaptureAction(virl, name, action):
+def do_capture_action(virl, name, action):
     intfc = action['intfc']
     count = action.get('count', 20)
     pcap = action.get('pcap', '')
@@ -48,7 +69,7 @@ def doCaptureAction(virl, name, action):
     bg_indicator = '*' if bg else ''
     virl.log(WARN, '(%s%d) filter: %s %s', bg_indicator, seq, name, intfc)
 
-    initialSleep(virl, seq, action)
+    initial_sleep(virl, seq, action)
     capId = virl.createCapture(name, intfc, pcap, count)
     ok = False
     if capId is not None and virl.waitForCapture(capId, wait):
@@ -59,7 +80,7 @@ def doCaptureAction(virl, name, action):
     action['success'] = ok
 
 
-def doConvergeAction(virl, name, action, log_output):
+def do_converge_action(virl, name, action, log_output):
     '''similar to command but will be called into a loop until it succeeds or
     max wait exceeded.
     essentially a command that will determine when the simulation has converged
@@ -75,7 +96,7 @@ def doConvergeAction(virl, name, action, log_output):
     waited = 0
 
     while True:
-        doCommandAction(virl, name, action, False, converge=True)
+        do_command_action(virl, name, action, False, converge=True)
         if action['success'] or waited > virl.simTimeout / 2:
             break
         virl.log(INFO, "waiting to converge... %d" % waited)
@@ -84,12 +105,14 @@ def doConvergeAction(virl, name, action, log_output):
         action['sleep'] = 0
 
 
-def doCommandAction(virl, name, action, log_output, converge=False):
+def do_command_action(virl, name, action, log_output, converge=False):
     transport = action.get('transport', 'telnet')
     logic = action.get('logic', 'one')  # RE match: match once or all
     in_cmd = action.get('in')
     out_re = action.get('out')
     wait = action.get('wait', 30)
+    username = action.get('username')
+    password = action.get('password')
 
     # this stuff probably should all go into an Action class
     ok = False
@@ -98,16 +121,25 @@ def doCommandAction(virl, name, action, log_output, converge=False):
     bg_indicator = '*' if bg else ''
     label = 'converge' if converge else 'command'
     virl.log(WARN, '(%s%d) %s: %s %s', bg_indicator, seq, label, name, in_cmd)
-    initialSleep(virl, seq, action)
+    initial_sleep(virl, seq, action)
 
     # get the IP of the mgmt LXC for SSH
     address = virl.getMgmtIP(name)
+
+    # if it is not a node: maybe an IP address?
+    if address is None:
+        ip = str_to_ip(name)
+        if ip is not None:
+            address = str(ip)
+
+    # check we
     if address is not None:
         if log_output or action.get('log', False):
             logname = '-'.join((virl.simId, name))
         else:
             logname = None
         ok = interaction(virl, logname, address, transport,
+                         username, password,
                          in_cmd, out_re, logic, wait)
         if not converge:
             level = WARN if ok else ERROR
@@ -119,20 +151,20 @@ def doCommandAction(virl, name, action, log_output, converge=False):
     action['success'] = ok
 
 
-def doAction(func, threads, virl, name, action, *args):
+def do_action(func, threads, virl, name, action, *args):
     background = action.get('background', False)
     if background:
         new_args = [virl, name, action] + list(args)
         t = threading.Thread(target=func, args=new_args)
         t.daemon = True
-        t.name = virl._sim_id
+        t.name = virl.simId
         threads.append(t)
         t.start()
     else:
         func(virl, name, action, *args)
 
 
-def doSim(virl, sim):
+def do_sim(virl, sim):
 
     ok = False
     threads = list()
@@ -141,32 +173,42 @@ def doSim(virl, sim):
     if virl.startSim():
         if virl.waitForSimStart():
             for node in sim.get('nodes', list()):
-                for name, actions in node.items():
-                    for action in actions:
-                        n += 1
-                        action_type = action.get('type', '<not set>')
-                        action['_seq'] = n
-                        if action_type == 'filter':
-                            doAction(doCaptureAction, threads, virl,
-                                     name, action)
-                            continue
+                nodename = node.get('name')
+                username = node.get('username', 'cisco')
+                password = node.get('password', 'cisco')
 
-                        if action_type == 'command':
-                            log_output = sim.get('log', True)
-                            doAction(doCommandAction, threads, virl,
-                                     name, action, log_output)
-                            continue
+                for action in node.get('actions'):
 
-                        if action_type == 'converge':
-                            log_output = sim.get('log', True)
-                            doAction(doConvergeAction, threads, virl,
-                                     name, action, log_output)
-                            if not action['success']:
-                                virl.log(CRITICAL, 'Sim did not converge! break action list')
-                                break
-                            continue
+                    n += 1
+                    action_type = action.get('type', '<not set>')
+                    action['_seq'] = n
 
-                        virl.log(CRITICAL, 'unknown action %s' % action_type)
+                    # adding the node's u/p to the action so that 
+                    # it can be passed to the function of the action
+                    action['username'] = username
+                    action['password'] = password
+
+                    if action_type == 'filter':
+                        do_action(do_capture_action, threads, virl,
+                                 nodename, action)
+                        continue
+
+                    if action_type == 'command':
+                        log_output = sim.get('log', True)
+                        do_action(do_command_action, threads, virl,
+                                 nodename, action, log_output)
+                        continue
+
+                    if action_type == 'converge':
+                        log_output = sim.get('log', True)
+                        do_action(do_converge_action, threads, virl,
+                                 nodename, action, log_output)
+                        if not action['success']:
+                            virl.log(CRITICAL, 'Sim did not converge! break action list')
+                            break
+                        continue
+
+                    virl.log(CRITICAL, 'unknown action %s' % action_type)
             # wait for all action threads to stop
             if len(threads) > 0:
                 virl.log(WARN, 'waiting for background actions to finish')
@@ -179,7 +221,7 @@ def doSim(virl, sim):
     return ok
 
 
-def doAllSims(cmdfile, logger=None):
+def do_all_sims(cmdfile, logger=None):
 
     # do we have a logger? If not, get the root logger
     if logger is None:
@@ -191,7 +233,7 @@ def doAllSims(cmdfile, logger=None):
     # store threads and sims in this list
     sims = list()
 
-    def activeSims():
+    def active_sims():
         active = 0
         for sim in sims:
             if sim['thread'].isAlive():
@@ -215,7 +257,7 @@ def doAllSims(cmdfile, logger=None):
             topo = os.path.join(workdir, sim['topo'])
             wait = sim.get('wait', cfg_wait)
             virl = VIRLSim(cfg.get('host', 'virl'),
-                cfg.get('user', 'guest'),
+                cfg.get('username', 'guest'),
                 cfg.get('password', 'guest'),
                 topo, logger, timeout=wait,
                 port=cfg.get('port', 19399))
@@ -225,14 +267,14 @@ def doAllSims(cmdfile, logger=None):
             #virl._no_start = True
 
             logger.warn('new thread %s', sim['topo'])
-            t = threading.Thread(target=doSim, args=(virl, sim))
+            t = threading.Thread(target=do_sim, args=(virl, sim))
             t.daemon = True
             t.start()
             sims.append(dict(thread=t, virl=virl))
-            if activeSims() == cfg.get('parallel'):
+            if active_sims() == cfg.get('parallel'):
                 busy = True
                 while busy:
-                    if activeSims() < cfg.get('parallel'):
+                    if active_sims() < cfg.get('parallel'):
                         busy = False
                         break
                     sleep(BUSYWAIT)
@@ -240,13 +282,13 @@ def doAllSims(cmdfile, logger=None):
             sleep(BUSYWAIT)
 
         # wait for all sims to finish
-        busy = activeSims() > 0
+        busy = active_sims() > 0
         logger.warning('waiting for background sims to end')
         while busy:
             sleep(BUSYWAIT)
-            current = activeSims()
+            current = active_sims()
             logger.debug('waiting for %d sim(s) to end', current)
-            busy = activeSims() > 0
+            busy = active_sims() > 0
     except KeyboardInterrupt:
         pass
     finally:
@@ -260,17 +302,16 @@ def doAllSims(cmdfile, logger=None):
         if sim.get('skip', False):
             continue
         for node in sim.get('nodes', list()):
-            for actions in node.values():
-                for action in actions:
-                    total += 1
-                    if action.get('success', False):
-                        success += 1
+            for action in node.get('actions'):
+                total += 1
+                if action.get('success', False):
+                    success += 1
     logger.warn('%d out of %d succeeded' % (success, total))
 
     return total == success
 
 
-def loadCfg(fh, lvl=0):
+def load_cfg(fh, lvl=0):
     """load the YAML formatted configuration file specified by fh.
     Recursively include additional command files if the include
     key exist (list of files)
@@ -284,7 +325,7 @@ def loadCfg(fh, lvl=0):
     if lvl > 10:
         raise yaml.scanner.ScannerError('recursion too deep')
 
-    def useTemplate(fh):
+    def use_template(fh):
         data = jinja2.Template(fh.read()).render(env=os.environ)
         return yaml.load(data)
 
@@ -304,10 +345,10 @@ def loadCfg(fh, lvl=0):
     # if isinstance(fh, TextIOWrapper) or isinstance(fh, file):
     # this misses unicode strings in python2
     if not isinstance(fh, str):
-        data = useTemplate(fh)
+        data = use_template(fh)
     else:
         with open(fh, 'r') as f:
-            data = useTemplate(f)
+            data = use_template(f)
     if data.get('sims') is None:
         data['sims'] = list()
     for sim in data['sims']:
@@ -321,7 +362,7 @@ def loadCfg(fh, lvl=0):
                 basename = os.path.basename(include)
                 if len(path) > 0:
                     os.chdir(path)
-                subdata = loadCfg(basename, lvl + 1)
+                subdata = load_cfg(basename, lvl + 1)
             except (IOError, OSError) as e:
                 raise yaml.scanner.ScannerError("%s/%s: %s" % (
                       os.getcwd(), include, e.strerror))
@@ -425,7 +466,7 @@ def main():
     else:
         root_logger.info('loading command file')
         try:
-            commands = loadCfg(args.cmdfile)
+            commands = load_cfg(args.cmdfile)
         except (yaml.scanner.ScannerError, yaml.parser.ParserError) as e:
             root_logger.critical('YAML: %s' % str(e).replace('\n', ''))
         else:
@@ -437,7 +478,7 @@ def main():
                 if loglevel != args.loglevel:
                     loglevel = args.loglevel
             root_logger.setLevel(logging.CRITICAL - loglevel * 10)
-            ok = doAllSims(commands, root_logger)
+            ok = do_all_sims(commands, root_logger)
 
     # shell return value
     return 0 if ok else -1

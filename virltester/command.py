@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .prompts import USERNAME_PROMPT, PASSWORD_PROMPT, CISCO_NOPRIV, PROMPT, DEVICE_U, DEVICE_P
+from .prompts import USERNAME_PROMPT, PASSWORD_PROMPT, CISCO_NOPRIV, PROMPT
 import socket
 import re
 import logging
@@ -25,13 +25,14 @@ net_connect.disconnect()
 '''
 
 
-def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, timeout, converge=False):
+def interaction(sim, logname, dest_ip, transport, username, password, inlines, output_re, logic, timeout, converge=False):
     '''interact with sim nodes via the LXC host (client).
     - sim is the current simulation
     - logname is the name of the node for the log filename 
       (if None then no log will be written
     - dest_ip is the IP of the sim node
     - transport is either 'ssh' or 'telnet'
+    - username and password (default cisco/cisco)
     - inlines is a list of commands to be sent
     - output_re is a RE or list of REs we expect in the output
     - if logic is 'all', then all of the REs in output_re must match
@@ -106,8 +107,7 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
         attempts = RETRY_ATTEMPTS
         while not done:
             if transport == 'ssh':
-                # interact.send('\nssh -v -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no %s@%s' % (DEVICE_U, dest_ip))
-                interact.send('ssh 2>&1 -v -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no %s@%s' % (DEVICE_U, dest_ip))
+                interact.send('ssh 2>&1 -v -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no %s@%s' % (username, dest_ip))
             else:
                 interact.send('telnet %s' % dest_ip)
             interact.expect(USERNAME_PROMPT + PASSWORD_PROMPT + LXC_PROMPT)
@@ -128,13 +128,13 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
 
         sim.log(logging.INFO, 'logged in to target')
         if transport == 'ssh':
-            interact.send(DEVICE_P)
+            interact.send(password)
         if transport == 'telnet':
             if interact.last_match in USERNAME_PROMPT:
-                interact.send(DEVICE_U)
+                interact.send(username)
                 interact.expect(PASSWORD_PROMPT)
             if interact.last_match in PASSWORD_PROMPT:
-                interact.send(DEVICE_P)
+                interact.send(password)
         interact.expect(PROMPT)
 
         # if we get an unprivileged prompt then
@@ -142,7 +142,7 @@ def interaction(sim, logname, dest_ip, transport, inlines, output_re, logic, tim
         if interact.last_match == CISCO_NOPRIV:
             interact.send('enable')
             interact.expect(PASSWORD_PROMPT)
-            interact.send(DEVICE_P)
+            interact.send(password)
             interact.expect(PROMPT)
 
         # at this point we SHOULD be logged in

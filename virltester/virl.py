@@ -84,6 +84,10 @@ class VIRLSim(object):
     def simId(self):
         return self._sim_id
 
+    @simId.setter
+    def simId(self, value):
+        self._sim_id = value
+
     @property
     def simHost(self):
         return self._host
@@ -151,8 +155,8 @@ class VIRLSim(object):
         self.log(WARN, 'Waiting %ds to become active...', self._timeout)
 
         # for testing purposes
-        #if self._no_start and len(self._sim_id) > 0:
-        #   return True
+        if self._no_start and len(self._sim_id) > 0:
+            return True
 
         endtime = datetime.utcnow() + timedelta(seconds=self._timeout)
         while not active and endtime > datetime.utcnow():
@@ -442,6 +446,7 @@ class VIRLSim(object):
         port = self.getLXCPort()
         try:
             self._ssh_client.connect(hostname=self._lxc_host, username=self._username,
+                                     pkey=None, look_for_keys=False, allow_agent=False,
                                      password=self._password, port=port)
         except (paramiko.AuthenticationException,
                paramiko.SSHException) as e:
