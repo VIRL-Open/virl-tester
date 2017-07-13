@@ -5,7 +5,7 @@ __author__ = "Ralph Schmieder"
 __author_email__ = "rschmied@cisco.com"
 __copyright__ = "Copyright (c) 2017 Cisco Systems, Inc."
 __license__ = "MIT"
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 
 setup(name='virltester',
@@ -29,6 +29,7 @@ setup(name='virltester',
       },
       install_requires=[
           'jinja2>=2',
+          'netaddr>=0.7'
           'paramiko>=2.1,<2.2',
           'paramiko-expect>=0.2',
           'requests>=2',
