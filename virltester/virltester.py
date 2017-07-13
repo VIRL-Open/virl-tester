@@ -173,11 +173,16 @@ def do_sim(virl, sim):
     if virl.startSim():
         if virl.waitForSimStart():
             for node in sim.get('nodes', list()):
+
                 nodename = node.get('name')
+                if nodename is None:
+                    virl.log(CRITICAL, 'No nodename configured!')
+                    continue
+
                 username = node.get('username', 'cisco')
                 password = node.get('password', 'cisco')
 
-                for action in node.get('actions'):
+                for action in node.get('actions', list()):
 
                     n += 1
                     action_type = action.get('type', '<not set>')
