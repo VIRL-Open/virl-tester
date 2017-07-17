@@ -229,13 +229,23 @@ class VIRLSim(object):
             # should we wait until all nodes are stopped?
             if wait:
                 status = self.getStatus()
+                waited = 0
                 while not status['state'] == "DONE":
+
                     # print(dumps(status, indent=2))
                     seconds = self.simPollInterval
                     self.log(INFO, 'sleeping %ds' % seconds)
                     sleep(seconds)
+
+                    # only wait for so long before giving up
+                    waited += seconds
+                    if waited > self._timeout / 2:
+                        self.log(CRITICAL, 'Simulation did NOT stop.')
+                        break
                     status = self.getStatus()
-                self.log(INFO, 'Simulation finally stopped.')
+
+                if status['state'] == "DONE":
+                    self.log(INFO, 'Simulation finally stopped.')
             # we might rely on the _sim_id after stop
             # for logging purposes.
             # self._sim_id = None
