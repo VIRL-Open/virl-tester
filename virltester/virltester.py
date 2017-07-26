@@ -262,8 +262,8 @@ def do_all_sims(cmdfile, logger=None):
             topo = os.path.join(workdir, sim['topo'])
             wait = sim.get('wait', cfg_wait)
             virl = VIRLSim(cfg.get('host', 'virl'),
-                cfg.get('username', 'guest'),
-                cfg.get('password', 'guest'),
+                sim.get('username', cfg.get('username', 'guest')),
+                sim.get('username', cfg.get('password', 'guest')),
                 topo, logger, timeout=wait,
                 port=cfg.get('port', 19399))
 
