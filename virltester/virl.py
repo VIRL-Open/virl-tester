@@ -431,10 +431,10 @@ class VIRLSim(object):
 
         # crude hack to make it work with ngrok
         tmp_lxc = os.environ.get('VIRL_LXC_PORT', None)
-        if tmp_lxc is not None:
+        if tmp_lxc is not None and len(tmp_lxc) > 0:
             self._lxc_port = int(tmp_lxc)
         tmp_host = os.environ.get('VIRL_LXC_HOST', None)
-        if tmp_host is not None:
+        if tmp_host is not None and len(tmp_host) > 0:
             self._lxc_host = tmp_host
 
         if self._lxc_port is None:
