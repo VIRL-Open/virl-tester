@@ -28,7 +28,7 @@ A node is:
 
 Actions for a node can be
 - filter: start a packet filter with given parameters (packet count,
-    and pcap filter)
+    and BPF string)
 - command: executes commands on the node (via the LXC) and compares
     output against a set of regex strings. Both commands and expected
     result strings can be given in lists.
@@ -103,7 +103,7 @@ def do_capture_action(virl, name, action):
     "Starts a PCAP as defined in the action."
     intfc = action['intfc']
     count = action.get('count', 20)
-    pcap = action.get('pcap', '')
+    bpf = action.get('bpf', '')
     wait = action.get('wait', None)
 
     # this stuff probably should all go into an Action class
@@ -113,7 +113,7 @@ def do_capture_action(virl, name, action):
     virl.log(WARN, '(%s%d) filter: %s %s', bg_indicator, seq, name, intfc)
 
     initial_sleep(virl, seq, action)
-    capId = virl.createCapture(name, intfc, pcap, count)
+    capId = virl.createCapture(name, intfc, bpf, count)
     ok = False
     if capId is not None and virl.waitForCapture(capId, wait):
         ok = virl.downloadCapture(capId)
