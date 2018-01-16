@@ -94,6 +94,7 @@ The Examples directory has a set of files to start with.
 - `iosv.yml`: Starts the triangle and does a few pings, generates log files
 - `pcap.yml`: Waits for convergence, starts a pcap and pings on two nodes
 - `config.yml`: Shows how to change the configuration of a device
+- `virl-host.yml`: Interact with the VIRL host (or other nodes via IP address instead of node name)
 - `include.yml`: Include other test files into a master test file
 
 These basic examples can be used as a starting point for further, more complex testing.

@@ -1,0 +1,42 @@
+#
+# interact with the VIRL host
+#
+
+config:
+  # the VIRL host
+  host: {{ env['VIRL_HOST'] or "localhost" }}
+  port: {{ env['VIRL_PORT'] or 19399 }}
+
+  # username and password
+  username: {{ env['VIRL_USER'] or "guest" }}
+  password: {{ env['VIRL_PASS'] or "guest" }}
+  # loglevel (0-4, 4=Debug)
+  loglevel: 2
+  # default wait time (spinup / actions)
+  wait: 300
+  #parallel: 1
+
+
+sims:
+- topo: triangle.virl
+  nodes:
+  - name: 172.16.1.254
+    username: virl
+    password: {{ env['HOST_PASS'] or "VIRL" }}
+    actions:
+    - type: command
+      transport: ssh
+      in:
+      - sudo salt-call --no-color -l info test.ping
+      out:
+      - 'True'
+  - name: iosv-1
+    actions:
+    - type: command
+      transport: telnet
+      in:
+      - term len 0
+      - sh ip route
+      - sh ip int brief
+      out:
+      - ''
