@@ -2,13 +2,13 @@
 """produce a commented sample command file that has
 (most) use cases covered."""
 
-_sample_command_file = '''\
+SAMPLE_COMMAND_FILE = '''\
 config:
-  # the VIRL host
-  host: 172.16.1.254
+  # the VIRL host (using Jinja2 templating)
+  host: {{ env["VIRL_HOST"] or "123.45.67.89" }}
   # username and password
-  user: guest
-  password: guest
+  user: {{ env["VIRL_USER"] or "guest" }}
+  password: {{ env["VIRL_PASS"] or "guest" }}
   # loglevel (0-4, 4=Debug)
   loglevel: 2
   # max parallel simulations
@@ -18,17 +18,21 @@ config:
 
 
 sims:
-- topo: ~/Downloads/test-LtfPFU.virl
+- topo: "~/Downloads/test-topology.virl"
+  
   # wait how long for sim to start (default: global wait)
   wait: 600
   # don't run this (default no)
   skip: yes
   # log all command actions (default yes)
   log: no
+  
   # list of nodes (mandatory)
   nodes:
-  - nx-osv9000-1:
-    # list of actions per node (filter | command)
+  
+  - name: nx-osv9000-1
+    # list of actions per node (filter | command | converge)
+    actions:
     - type: filter
       # should run in background (default no)?
       background: yes
@@ -37,10 +41,12 @@ sims:
       # amount of packets to capture
       count: 25
       # missing or empty filter: all packets
-      pcap: icmp
+      bpf: icmp
       # mandatory interface
       intfc: Ethernet1/1
-  - nx-osv9000-2:
+  
+  - name: nx-osv9000-2
+    actions:
     - type: filter
       # should run in background?
       background: yes
@@ -49,12 +55,12 @@ sims:
       # amount of packets to capture
       count: 25
       # missing or empty filter: all packets
-      pcap: icmp
+      bpf: icmp
       # mandatory interface
       intfc: Ethernet1/1
-
-
-  - nx-osv9000-1:
+  
+  - name nx-osv9000-1
+    actions:
     - type: command
       background: yes
       #sleep: 5
@@ -66,7 +72,9 @@ sims:
       out:
       - 50 packets received
       - 50/50
-  - nx-osv9000-2:
+  
+  - name: nx-osv9000-2
+    actions:
     - type: command
       #background: yes
       sleep: 10
@@ -79,5 +87,5 @@ sims:
 def writeCommandSample():
     "Write the sample file."
     with open('command-example.yml', 'w') as fh:
-        fh.write(_sample_command_file)
+        fh.write(SAMPLE_COMMAND_FILE)
     return True
