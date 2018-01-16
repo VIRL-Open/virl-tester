@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
+"Interact with devices using the existing LXC SSH session."
 
-from .prompts import USERNAME_PROMPT, PASSWORD_PROMPT, CISCO_NOPRIV, PROMPT
 import socket
 import re
 import logging
-from threading import Semaphore
 from datetime import datetime
 from os import devnull
 from time import sleep
 
+from .prompts import USERNAME_PROMPT, PASSWORD_PROMPT, CISCO_NOPRIV, PROMPT
 
-'''
-console=dict(device_type='cisco_ios_telnet', 
-             ip='172.23.175.245', 
-             port=17000, 
-             verbose=True, 
+"""
+console=dict(device_type='cisco_ios_telnet',
+             ip='172.23.175.245',
+             port=17000,
+             verbose=True,
              secret='cisco')
 net_connect = netmiko.ConnectHandler(**console)
 net_connect.find_prompt()
@@ -22,13 +22,13 @@ net_connect.enable()
 r=net_connect.send_command('sh ip int brief')
 print(r)
 net_connect.disconnect()
-'''
+"""
 
 
 def interaction(sim, logname, dest_ip, transport, username, password, inlines, output_re, logic, timeout, converge=False):
-    '''interact with sim nodes via the LXC host (client).
+    """interact with sim nodes via the LXC host (client).
     - sim is the current simulation
-    - logname is the name of the node for the log filename 
+    - logname is the name of the node for the log filename
       (if None then no log will be written
     - dest_ip is the IP of the sim node
     - transport is either 'ssh' or 'telnet'
@@ -41,7 +41,7 @@ def interaction(sim, logname, dest_ip, transport, username, password, inlines, o
     - converge is True if this is to check whether sim converged
       in this case, failure is OK, no logging if timeout / fail
       converge does not create a log file.
-    '''
+    """
 
     RETRY_ATTEMPTS = 8
     RETRY_SLEEP = 120
@@ -66,7 +66,7 @@ def interaction(sim, logname, dest_ip, transport, username, password, inlines, o
         return False
 
     # make sure only one at a time
-    sim._semaphore.acquire()
+    sim.lock()
 
     # get a logfile
     if logname is not None and not converge:
@@ -94,7 +94,7 @@ def interaction(sim, logname, dest_ip, transport, username, password, inlines, o
             sim.log(logging.CRITICAL, 'SSH error (%s)' % e)
             interact = sim.sshOpen(timeout)
             if interact is None:
-                sim._semaphore.release()
+                sim.unlock()
                 fh.close()
                 return False
         else:
@@ -119,7 +119,7 @@ def interaction(sim, logname, dest_ip, transport, username, password, inlines, o
                 sim.log(logging.WARN, 'ATTENTION: connection issue (%s)' % attempts)
                 if attempts == 0:
                     raise socket.timeout
-                sim.sshClose() 
+                sim.sshClose()
                 sleep(RETRY_SLEEP)
                 interact = sim.sshOpen(timeout)
                 interact.send('')
@@ -193,9 +193,8 @@ def interaction(sim, logname, dest_ip, transport, username, password, inlines, o
             # input('[enter to continue]')
         else:
             sim.log(logging.DEBUG, 'waiting for convergence')
-            pass
 
     fh.close()
-    sim._semaphore.release()
+    sim.unlock()
 
     return ok

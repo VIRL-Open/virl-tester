@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"Define prompts for various devices we expect to see in sims."
 
 CISCO_NOPRIV = r'[\w-]+(\([\w-]+\))?> ?'
 CISCO_PROMPT = [

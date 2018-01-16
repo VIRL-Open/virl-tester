@@ -1,4 +1,4 @@
 # -*- coding: utf-8 -*-
+"Module initialization."
 
-from .virltester import main
-
+from .tester import main

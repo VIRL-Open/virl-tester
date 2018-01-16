@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"Colored logging for the VIRL tester."
 
 import logging
 from logging import StreamHandler
@@ -38,6 +39,7 @@ class ColorHandler(StreamHandler):
     }
 
     def addColor(self, text, bg, fg, bold):
+        "add color to the log text."
         ctext = ''
         if bg is not None:
             ctext = self.COLOR_SEQ % (40 + bg)
@@ -47,6 +49,7 @@ class ColorHandler(StreamHandler):
         return ctext
 
     def colorize(self, record):
+        "define the colors for various log levels."
         if record.levelno in self.level_map:
             bg, fg, bold = self.level_map[record.levelno]
         else:
@@ -62,6 +65,7 @@ class ColorHandler(StreamHandler):
         return record
 
     def format(self, record):
+        "Format log messages (with/without color)."
         if self.colored:
             message = logging.StreamHandler.format(self, self.colorize(record))
         else:

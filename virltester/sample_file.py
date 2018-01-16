@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+"""produce a commented sample command file that has
+(most) use cases covered."""
 
 _sample_command_file = '''\
 config:
@@ -73,6 +75,9 @@ sims:
       out: 0.00% packet loss
 '''
 
+
 def writeCommandSample():
+    "Write the sample file."
     with open('command-example.yml', 'w') as fh:
         fh.write(_sample_command_file)
+    return True

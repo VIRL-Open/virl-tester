@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
+"Direct interact with the consoles of the sim, not via Mgmt-LXC."
+
+import logging
+import re
 
 from telnetlib import Telnet
 from socket import error as socket_error
-# from datetime import datetime
 from .prompts import CISCO_PROMPT, LINUX_PROMPT, USERNAME_PROMPT, PASSWORD_PROMPT, CISCO_NOPRIV
-import re
-import json
 
-'''
+"""
 asav.py:    plugin_name = 'ASAv'
 base.py:    plugin_name = virl.plugins.Plugin.UNKNOWN
 base.py:    plugin_name = 'generic'
@@ -49,21 +50,21 @@ server.py:    plugin_name = 'Server'
 staros.py:    plugin_name = 'StarOS'
 vsrx.py:    plugin_name = 'vSRX'
 vyatta.py:    plugin_name = 'Vyatta'
-'''
+"""
 
+# define the type, user/pass, initialization command and command to get for post-mortem
+ASAV = ['ASAv', None, None, 'cisco', ['term pager 0'], ['show interface detail']]
+CSR1KV = ['CSR1000v', None, None, 'cisco', ['term len 0'], ['show ip interface brief', ]]
+IOSV = ['IOSv', None, None, 'cisco', ['term len 0'], ['show ip interface brief']]
+IOSVL2 = ['IOSvL2', None, None, 'cisco', ['term len 0'], ['show interface status']]
+IOSXRV = ['IOS XRv', 'cisco', 'cisco', '', ['term len 0 '], ['show ip interface brief', 'show ip route']]
+IOSXRV9K = ['IOS XRv 9000', 'cisco', 'cisco', '', ['term len 0 '], ['show ip interface brief']]
+NXOSV = ['NX-OSv', 'cisco', 'cisco', '', ['term len 0 '], ['show interface status']]
+NXOSV9K = ['NX-OSv 9000', 'cisco', 'cisco', '', ['term len 0 '], ['show interface status']]
+SERVER = ['server', 'cisco', 'cisco', '', [], ['ip route', 'ifconfig -a']]
+COREOS = ['~coreos', 'cisco', 'cisco', '', [], ['ip route', 'ifconfig -a']]
 
-asav = ['ASAv', None, None, 'cisco', ['term pager 0'], ['show interface detail']]
-csr1kv = ['CSR1000v', None, None, 'cisco', ['term len 0'], ['show ip interface brief', ]]
-iosv = ['IOSv', None, None, 'cisco', ['term len 0'], ['show ip interface brief']]
-iosvl2 = ['IOSvL2', None, None, 'cisco', ['term len 0'], ['show interface status']]
-iosxrv = ['IOS XRv', 'cisco', 'cisco', '', ['term len 0 '], ['show ip interface brief', 'show ip route']]
-iosxrv9k = ['IOS XRv 9000', 'cisco', 'cisco', '', ['term len 0 '], ['show ip interface brief']]
-nxosv = ['NX-OSv', 'cisco', 'cisco', '', ['term len 0 '], ['show interface status']]
-nxosv9k = ['NX-OSv 9000', 'cisco', 'cisco', '', ['term len 0 '], ['show interface status']]
-server = ['server', 'cisco', 'cisco', '', [], ['ip route', 'ifconfig -a']]
-coreos = ['~coreos', 'cisco', 'cisco', '', [], ['ip route', 'ifconfig -a']]
-
-devices = {n[0]: n[1:] for n in [ asav, csr1kv, iosv, iosvl2, iosxrv, iosxrv9k, nxosv, nxosv9k, server, coreos]}
+DEVICES = {n[0]: n[1:] for n in [ASAV, CSR1KV, IOSV, IOSVL2, IOSXRV, IOSXRV9K, NXOSV, NXOSV9K, SERVER, COREOS]}
 
 LastMatch = None
 
@@ -72,27 +73,27 @@ ENCODING = 'utf-8'
 CRLF = '\r\n'
 
 # this needs to be byte-encoded for telnetlib...!?
-PROMPT = [ p.encode(ENCODING) for p in CISCO_PROMPT + LINUX_PROMPT]
-UPRMPT = [ p.encode(ENCODING) for p in USERNAME_PROMPT]
-PPRMPT = [ p.encode(ENCODING) for p in PASSWORD_PROMPT]
-NOPRIV = [ CISCO_NOPRIV.encode(ENCODING) ]
+PROMPT = [p.encode(ENCODING) for p in CISCO_PROMPT + LINUX_PROMPT]
+UPRMPT = [p.encode(ENCODING) for p in USERNAME_PROMPT]
+PPRMPT = [p.encode(ENCODING) for p in PASSWORD_PROMPT]
+NOPRIV = [CISCO_NOPRIV.encode(ENCODING)]
 
-''' we are assuming that the VMs which need a login are at the login prompt
+""" we are assuming that the VMs which need a login are at the login prompt
     and have not been logged in at this point.
-'''
+"""
 
 def sendLine(telnet, prompt, line):
-    '''sends a line, then expects a prompt.
+    """sends a line, then expects a prompt.
     the returned data from expect is:
     - p[0] the index of the given RE list that matched
-    - p[1] the matched sre 
+    - p[1] the matched sre
     - p[2] the entire returned data (including the match)
     we then remove the prompt in the data.
-    '''
+    """
     global LastMatch
 
     if line is None:
-        return
+        return None
 
     send_line = line.encode(ENCODING)
     # TODO: the following is a bit fishy:
@@ -111,6 +112,7 @@ def sendLine(telnet, prompt, line):
 
 
 def myMatch(pattern_list, string):
+    "Match the pattern."
     if string is None:
         return False
     for p in pattern_list:
@@ -120,8 +122,8 @@ def myMatch(pattern_list, string):
 
 
 def postMortem(sim, sim_node_id, device_type, host, port):
-
-    st = devices.get(device_type)
+    "Post mortem mode... interact direct with the console and log to file."
+    st = DEVICES.get(device_type)
     if st is None:
         sim.log(logging.CRITICAL, 'postMortem: unknown device type [%s]' % device_type)
         return

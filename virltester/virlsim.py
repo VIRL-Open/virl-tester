@@ -1,22 +1,21 @@
 # -*- coding: utf-8 -*-
+"Defines the VIRLSim class"
 
 import os
 from datetime import datetime, timedelta
 from time import sleep
 from logging import DEBUG, INFO, WARN, ERROR, CRITICAL
 from threading import Semaphore
+from json import dumps
+
 import requests
 import paramiko
 from paramiko_expect import SSHClientInteraction
 from .console import postMortem
-from json import dumps
-
-
-""" defines the simulation element """
 
 
 class VIRLSim(object):
-    '''holds configuration information of a VIRL simulation'''
+    "Defines the simulation element and holds configuration information of a VIRL simulation."
 
     # will sleep for 'timeout / INTERVAL' when waiting for sim to start
     INTERVAL = 30
@@ -42,13 +41,12 @@ class VIRLSim(object):
         self._ssh_interact = None
 
     def _url(self, method='', roster=False):
-        '''return the proper URL given the set vars and the
-        method parameter.
-        '''
+        """Return the proper URL given the set vars and the
+        method parameter."""
         api = 'simengine'
         if roster:
             api = 'roster'
-        return "http://{}:{}/{}/rest/{}".format(self._host, self._port, 
+        return "http://{}:{}/{}/rest/{}".format(self._host, self._port,
                                                 api, method)
 
     def _request(self, verb, method, *args, **kwargs):
@@ -69,19 +67,20 @@ class VIRLSim(object):
         return self._request('DELETE', method, *args, **kwargs)
 
     def log(self, level, *args, **kwargs):
-        '''send the message in args to the logger with the given level.
-        '''
+        "Send the message in args to the logger with the given level."
         sim = self._sim_id if self._sim_id is not None else '<unknown>'
         newargs = list(args)
         newargs[0] = ': '.join((sim, args[0]))
         if self._logger is not None:
-            return self._logger.log(level, *newargs, **kwargs)
+            self._logger.log(level, *newargs, **kwargs)
 
     def isLogDebug(self):
+        "Is logging enabled?"
         return self._logger.getEffectiveLevel() == DEBUG
 
     @property
     def simId(self):
+        "The simulation ID on the VIRL host."
         return self._sim_id
 
     @simId.setter
@@ -90,41 +89,54 @@ class VIRLSim(object):
 
     @property
     def simHost(self):
+        "Returns the name of the simulation host."
         return self._host
 
     @property
     def simUser(self):
+        "Returns the name of the user running the sim."
         return self._username
 
     @property
     def simPass(self):
+        "Returns the password used to run the simulation."
         return self._password
 
     @property
     def simTimeout(self):
+        "Returns the timeout set for the simulation."
         return self._timeout
 
     @property
     def sshInteract(self):
+        "Returns a SSH object to interact with the simulation via LXC."
         if self._ssh_interact is not None:
             return self._ssh_interact
         return self.sshOpen()
 
     @property
     def simPollInterval(self):
+        "Returns the poll interval (how often to check state) for the sim."
         interval = self._timeout // self.INTERVAL
         if interval == 0:
             interval = self._timeout
         return interval
 
+    def lock(self):
+        "Lock the simulation, admit only one at a time."
+        self._semaphore.acquire()
+
+    def unlock(self):
+        "Unlocks the simulation."
+        self._semaphore.release()
+
     def startSim(self):
-        '''This function will start a simulation using the provided .virl file
-        '''
+        "This function will start a simulation using the provided .virl file."
         sim_name = os.path.basename(os.path.splitext(self._filename)[0])
         self.log(WARN, 'Starting [%s]' % sim_name)
 
         # for debugging purposes. uses existing sim, does not start nor stop
-        if self._no_start and len(self._sim_id) > 0:
+        if self._no_start and self._sim_id:
             return True
 
         # Open .virl file and assign it to the variable
@@ -148,14 +160,14 @@ class VIRLSim(object):
         return ok
 
     def waitForSimStart(self):
-        '''Returns True if the sim is started and all nodes are active/reachable
-        waits for self._timeout (default 5min)
-        '''
+        """Returns True if the sim is started and all nodes are active/reachable
+        waits for self._timeout (default 5min)."""
+
         active = False
         self.log(WARN, 'Waiting %ds to become active...', self._timeout)
 
         # for testing purposes
-        if self._no_start and len(self._sim_id) > 0:
+        if self._no_start and self._sim_id:
             return True
 
         endtime = datetime.utcnow() + timedelta(seconds=self._timeout)
@@ -208,13 +220,12 @@ class VIRLSim(object):
         return active
 
     def stopSim(self, wait=False):
-        '''This function will stop the simulation
-        '''
+        "This function will stop the simulation."
         self.log(WARN, 'Simulation stop...')
 
         # for debugging purposes
-        if self._no_start and len(self._sim_id) > 0:
-            return True
+        if self._no_start and self._sim_id:
+            return
 
         # ensure SSH sessions are closed, if open
         self.sshClose()
@@ -251,9 +262,9 @@ class VIRLSim(object):
             # self._sim_id = None
 
     def getNodeDetail(self, node):
-        '''Get the node subtype and console port of the given node
+        """Get the node subtype and console port of the given node
         guest|csr1kv-single-test-9DYnbf|virl|csr1000v-1
-        '''
+        """
         self.log(INFO, "Getting console port for [%s]...", node)
         r = self._get('', roster=True)
         if r.ok:
@@ -261,25 +272,27 @@ class VIRLSim(object):
                 f = k.split('|')
                 if len(f) > 1 and f[1] == self._sim_id and f[3] == node:
                     return (v.get('NodeSubtype'), v.get('PortConsole'))
+        return ('unknown', 0)
 
     def getEvents(self):
-        'Get the events associated with the sim'
+        "Get the events associated with the sim."
         self.log(INFO, "Getting events...")
         r = self._get('events/%s' % self._sim_id)
         if r.ok:
             return r.json()
+        return '{}'
 
     def getStatus(self):
-        'Get the status messages associated with the sim'
+        "Get the status messages associated with the sim."
         self.log(INFO, "Getting status messages...")
         r = self._get('status/%s' % self._sim_id)
         if r.ok:
             return r.json()
+        return '{}'
 
     def getInterfaces(self, node):
-        '''return the list of interfaces for the given node or
-        None if not found.
-        '''
+        """Return the list of interfaces for the given node or
+        None if not found."""
         self.log(INFO, "Getting interfaces for [%s]...", node)
         params = dict(nodes=node)
         r = self._get('interfaces/%s' % self._sim_id, params=params)
@@ -290,22 +303,19 @@ class VIRLSim(object):
         return None
 
     def getInterfaceId(self, node, interface):
-        '''get the interface index for the given interface name.
-        '''
+        "Get the interface index for the given interface name."
         self.log(INFO, "Getting ID from name [%s]...", interface)
         interfaces = self.getInterfaces(node)
         for key, intfc in interfaces.items():
             if intfc.get('name') == interface:
                 self.log(INFO, "Found id: %s", key)
                 return key
-
         self.log(ERROR, "Can't find specified interface %s", interface)
         return None
 
     def createCapture(self, node, interface, pcap_filter, count):
-        '''Create a packet capture for the simulation using the given
-        parameters in cfg
-        '''
+        """Create a packet capture for the simulation using the given
+        parameters in cfg."""
         self.log(WARN, "Starting packet capture...")
 
         # get interface based on name
@@ -318,30 +328,30 @@ class VIRLSim(object):
         params['pcap-filter'] = pcap_filter
         r = self._post('capture/%s' % self._sim_id, params=params)
         # did it work?
+        cap_id = ""
         if r.ok:
-            capId = list(r.json().keys())[0]
-            self.log(INFO, "Created packet capture (%s)", capId)
-            return capId
+            cap_id = list(r.json().keys())[0]
+            self.log(INFO, "Created packet capture (%s)", cap_id)
+        return cap_id
 
-    def deleteCapture(self, capId):
-        '''delete the given packet capture with capId for the simulation
-        '''
+    def deleteCapture(self, cap_id):
+        "Delete the given packet capture with cap_id for the simulation."
         self.log(INFO, "Deleting packet capture...")
 
-        params = dict(capture=capId)
+        params = dict(capture=cap_id)
         r = self._delete('capture/%s' % self._sim_id, params=params)
         return r.ok
 
-    def waitForCapture(self, capId, wait=None):
-        '''Wait until the packet capture is done. check for the 'running'
-        state according to the set wait time divided by INTERVAL divisor
-        '''
+    def waitForCapture(self, cap_id, wait=None):
+        """Wait until the packet capture is done. check for the 'running'
+        state according to the set wait time divided by INTERVAL
+        divisor."""
 
         if wait is None:
             wait = self._timeout
 
         done = False
-        self.log(INFO, 'Waiting %ds for capture [%s]', wait, capId)
+        self.log(INFO, 'Waiting %ds for capture [%s]', wait, cap_id)
 
         endtime = datetime.utcnow() + timedelta(seconds=wait)
         while not done and endtime > datetime.utcnow():
@@ -355,7 +365,7 @@ class VIRLSim(object):
             # check if all nodes are active AND reachable
             captures = r.json()
             for cid, cval in captures.items():
-                if cid == capId and not cval.get('running'):
+                if cid == cap_id and not cval.get('running'):
                     done = True
                     break
 
@@ -370,11 +380,11 @@ class VIRLSim(object):
 
         return done
 
-    def downloadCapture(self, id):
-        '''Download the finished capture and write it into a file
-        '''
+    def downloadCapture(self, pcap_id):
+        "Download the finished capture and write it into a file."
+
         content = 'application/vnd.tcpdump.pcap'
-        params = dict(capture=id)
+        params = dict(capture=pcap_id)
         headers = dict(accept=content)
         self.log(WARN, 'Downloading capture file...')
 
@@ -396,8 +406,8 @@ class VIRLSim(object):
         return True
 
     def getMgmtIP(self, node):
-        ''' return the management IP of the given Node name
-        '''
+        "Return the management IP of the given Node name."
+
         interfaces = self.getInterfaces(node)
         if interfaces is None:
             return None
@@ -412,10 +422,10 @@ class VIRLSim(object):
         return None
 
     def getLXCPort(self):
-        ''' return the TCP port of the LXC host for the simulation
+        """Return the TCP port of the LXC host for the simulation
         the LXC can then be reached via the sim host on this port using
-        SSH as the protocol.
-        '''
+        SSH as the protocol."""
+
         if self._lxc_port is not None:
             return self._lxc_port
 
@@ -431,10 +441,10 @@ class VIRLSim(object):
 
         # crude hack to make it work with ngrok
         tmp_lxc = os.environ.get('VIRL_LXC_PORT', None)
-        if tmp_lxc is not None and len(tmp_lxc) > 0:
+        if tmp_lxc is not None and tmp_lxc:
             self._lxc_port = int(tmp_lxc)
         tmp_host = os.environ.get('VIRL_LXC_HOST', None)
-        if tmp_host is not None and len(tmp_host) > 0:
+        if tmp_host is not None and tmp_host:
             self._lxc_host = tmp_host
 
         if self._lxc_port is None:
@@ -443,6 +453,7 @@ class VIRLSim(object):
         return self._lxc_port
 
     def sshOpen(self, timeout=5):
+        "Opens a SSH connection to the mgmt LXC."
         if self._ssh_interact is not None:
             return self._ssh_interact
 
@@ -459,7 +470,7 @@ class VIRLSim(object):
                                      pkey=None, look_for_keys=False, allow_agent=False,
                                      password=self._password, port=port)
         except (paramiko.AuthenticationException,
-               paramiko.SSHException) as e:
+                paramiko.SSHException) as e:
             self.log(CRITICAL, 'SSH connect failed: %s' % e)
             return None
 
@@ -468,10 +479,10 @@ class VIRLSim(object):
         return self._ssh_interact
 
     def sshClose(self):
+        "Closes the connection to the mgmt LXC, if it exists."
         if self._ssh_interact is None:
             return
         self.log(WARN, 'Closing LXC SSH session')
         self._ssh_interact.close()
         self._ssh_client.close()
         self._ssh_interact = self._ssh_client = None
-

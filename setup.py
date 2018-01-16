@@ -1,11 +1,14 @@
+# -*- coding: utf-8 -*-
+"setup.py for the virltester."
+
 from setuptools import setup, find_packages
 
 
 __author__ = "Ralph Schmieder"
 __author_email__ = "rschmied@cisco.com"
-__copyright__ = "Copyright (c) 2017 Cisco Systems, Inc."
+__copyright__ = "Copyright (c) 2018 Cisco Systems, Inc."
 __license__ = "MIT"
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 
 setup(name='virltester',
@@ -18,13 +21,13 @@ setup(name='virltester',
       license=__license__,
       platforms='Posix',
       classifiers=[
-            "Development Status :: 3 - Alpha",
-            "Topic :: Utilities",
-            "License :: OSI Approved :: MIT License",
-            ],
+          "Development Status :: 3 - Alpha",
+          "Topic :: Utilities",
+          "License :: OSI Approved :: MIT License",
+      ],
       entry_points={
           'console_scripts': [
-              'virltester=virltester:main',
+              'virltester=virltester.tester:main',
           ],
       },
       install_requires=[
@@ -36,5 +39,4 @@ setup(name='virltester',
           'PyYAML>=3'
       ],
       packages=find_packages(exclude=['Examples', 'test']),
-      )
-
+     )
