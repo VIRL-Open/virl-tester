@@ -9,6 +9,6 @@ l = logging.getLogger()
 
 def test_iosv_single():
     "test a single sim"
-    cfg = load_cfg('WORKDIR/iosv-single-test.yml')
-    cfg['_workdir'] = 'WORKDIR'
+    cfg = load_cfg('Examples/iosv.yml')
+    cfg['_workdir'] = 'Examples'
     assert_equals(do_all_sims(cfg, l), True)
