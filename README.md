@@ -63,7 +63,7 @@ A node is:
 
 Actions for a node can be
 - filter: start a packet filter with given parameters (packet count,
-    and pcap filter)
+    and pcap berkely packet filter BPF)
 - command: executes commands on the node (via the LXC) and compares
     output against a set of regex strings. Both commands and expected
     result strings can be given in lists.
@@ -121,7 +121,7 @@ The test verifies that nodes come up fine and frames are forwarded. The `allnode
 ## Syntax
 The following tries to adhere to ABNF, see [here](https://en.wikipedia.org/wiki/Augmented_Backus%E2%80%93Naur_form) for the Wikipedia reference. 
 
-All the repetitions are essentially lists in the YAML whereas the rest is key / value pairs (dictionaries). See the Examples section how it should be rendedered in YAML.
+All the repetitions are essentially lists in the YAML whereas the rest is key / value pairs (dictionaries). See the Examples section how it should be rendered in YAML.
 
 ```
 virltest = [config includes sims]
@@ -147,9 +147,9 @@ wait = int; maximum wait in [s] before it gives up (defaults to global wait)
 
 name = string; either valid nodename in topology or IP address
 actions *(
-  ("command" background [transport logic username password wait] in out) / 
-  ("converge") background [transport logic username password wait] in out) /
-  ("filter" background intfc [count pcap wait])
+  ("command" background [transport log logic username password wait] in out) / 
+  ("converge") background [transport log logic username password wait] in out) /
+  ("filter" background intfc [count bpf wait])
 )
 
 background = bool; should this action run in parallel?
@@ -163,9 +163,9 @@ username = string; device username ("cisco")
 password = string; device passwod ("cisco")
 
 count = int; Number of packets to capture (20)
-pcap = string; BPF filter to apply ("", e.g. all packets)
+bpf = string; BPF filter to apply ("", e.g. all packets)
 intfc = string; Name of interface on the node to capture from (mandatory)
-wait = int; how long to wait until capture stops
+wait = int; how long (seconds) to wait until capture stops (300)
 ```
 
 ## Examples
@@ -243,6 +243,26 @@ The 'converge' action is similar to the regular 'command' action. But it is used
 For example, a topology is converged when on a particular node a specific route can be seen in the routing table... That route would only be present when the intermediate nodes are up and forwarding packets, BGP has been established between the peers and the prefix has been announces. So the command can check for that prefix in the routing table.
 
 Only when the 'converge' action has succeeded, the subsequent actions in the action list are executed. For this reason, the 'converge' action should be the first action in the list of actions. However, this is not enforced. If the 'convert' action fails then the subsequent actions in the list will not be attempted.
+
+## Inclusion of other test files
+The 'includes' section allows to recursively include other test files into the main test file. Only the 'sims' list of the included files will be appended to the sims of the main test file.
+
+This allows to define the configuration parameters in the main test file and the run the sims. Topology files are then read relative to the included test YAML files if no absolute path is given.
+
+## Sample RegEx 
+
+```yaml
+- name: lxc-1
+  actions:
+  - type: command
+    transport: ssh
+    in:
+    - 'curl -Is http://10.0.0.5:80 | grep "200 OK")'
+    out:
+    - ^HTTP/1.1 200 OK$
+```
+
+This examples shows how an application (here: NGINX webserver) can be tested. The command connects to a LXC host in the topology, then runs curl to retrieve a web page from the container running NGINX and checks for a specific 'success' string in the 'out' RegEx. Note that there might be a 'sleep' required to allow for the processes to start.
 
 ## Incantations
 The below starts the test 10 times and executes all sims in the 'allnodes.yml' test description, redirects every output to 'test.log'.
