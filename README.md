@@ -242,7 +242,7 @@ The 'converge' action is similar to the regular 'command' action. But it is used
 
 For example, a topology is converged when on a particular node a specific route can be seen in the routing table... That route would only be present when the intermediate nodes are up and forwarding packets, BGP has been established between the peers and the prefix has been announces. So the command can check for that prefix in the routing table.
 
-Only when the 'converge' action has succeeded, the subsequent actions in the action list are executed. The overall success of the test is only determined by looking at the success of the regular 'command' / 'filter' actions.
+Only when the 'converge' action has succeeded, the subsequent actions in the action list are executed. For this reason, the 'converge' action should be the first action in the list of actions. However, this is not enforced. If the 'convert' action fails then the subsequent actions in the list will not be attempted.
 
 ## Incantations
 The below starts the test 10 times and executes all sims in the 'allnodes.yml' test description, redirects every output to 'test.log'.
