@@ -1,0 +1,26 @@
+#
+# Include demo test file
+# use parameters from config section
+# and run the sims from the included test files
+# 
+
+config:
+  # the VIRL host
+  host: {{ env["VIRL_HOST"] or "localhost" }}
+  port: {{ env["VIRL_PORT"] or 19399 }}
+
+  # username and password
+  username: {{ env["VIRL_USER"] or "guest" }}
+  password: {{ env["VIRL_PASS"] or "guest" }}
+  # loglevel (0-4, 4=Debug)
+  #loglevel: 2
+  # default wait time (spinup / actions)
+  #wait: 300
+  # how many sims to start in parallel
+  #parallel: 1
+
+
+includes:
+- iosv.yml
+- pcap.yml
+
