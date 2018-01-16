@@ -1,15 +1,6 @@
 # README.md
 
-This is the README file for *virltester*
-
-- Lacks coherent Examples and better documentation in general. Some of them are
-plain wrong (as the YAML has evolved over time :) ) and some are redundant /
-misplaced etc.
-
-- The Examples/test.yml and the simple.yml in the baseline directory in Examples
-*should* work. 
-
-- The `WORKDIR` directory should have a consistent set of files for a basic smoke test.
+This is the README file for the *virltester* tool.
 
 > **Note:** It should run with Python 2 and Python 3 but was mostly tested with Python 3.x.
 
