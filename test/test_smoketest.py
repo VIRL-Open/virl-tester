@@ -1,12 +1,14 @@
-from virltester.virltester import loadCfg, doAllSims
-from nose.tools import assert_equals
+"basic smoke test using nose tests"
 import logging
+
+from virltester.tester import do_all_sims, load_cfg
+
+from nose.tools import assert_equals
 
 l = logging.getLogger()
 
 def test_iosv_single():
-    cfg = loadCfg('WORKDIR/iosv-single-test.yml')
+    "test a single sim"
+    cfg = load_cfg('WORKDIR/iosv-single-test.yml')
     cfg['_workdir'] = 'WORKDIR'
-    assert_equals(doAllSims(cfg, l), True)
-
-
+    assert_equals(do_all_sims(cfg, l), True)
