@@ -94,27 +94,16 @@ $
 
 Exit status is 0 when all tests were successful or -1 otherwise.
 
-## Includes
-Command files can include other command files. In this case it only includes the `config` section and then an additional `include` section instead of the `sims` sections:
+# Basic Smoke Tests
+The Examples directory has a set of files to start with.
 
-```
-config:
-  host: 172.16.1.254
-  user: guest
-  password: guest
+- triangle.virl: Used by the test YAML files.
+- iosv.yml: starts the triangle and does a few pings, generates log files
+- pcap.yml: waits for convergence, starts a pcap and pings on two nodes
+- config.yml: shows how to change the configuration of a device
+- include.yml: include other test files into a master test file
 
-includes:
-- subcommand1.yml
-- subcommand2.yml
-```
-
-# Basic Smoke Test
-The WORKDIR directory has a set of files which test all existing node types (reference platform VMs). It includes
-
-- a topology with LXC-1 -- DuT -- LXC-2 for each node type (.yml and .virl)
-- a test description for each node type which spins up the sim and, after it becomes active, pings LXC-2 from LXC-1 and vice versa
-
-The test verifies that nodes come up fine and frames are forwarded. The `allnodes.yml` file does this for all node types (minus the XRv9000 as that one is currently broken).
+These basic examples can be used as a starting point for further, more complex testing.
 
 # YAML Test Definition
 

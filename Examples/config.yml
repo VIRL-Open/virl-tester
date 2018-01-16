@@ -1,0 +1,36 @@
+#
+# configure device
+# 
+
+config:
+  # the VIRL host
+  host: {{ env["VIRL_HOST"] or "localhost" }}
+  port: {{ env["VIRL_PORT"] or 19399 }}
+
+  # username and password
+  username: {{ env["VIRL_USER"] or "guest" }}
+  password: {{ env["VIRL_PASS"] or "guest" }}
+  # loglevel (0-4, 4=Debug)
+  #loglevel: 2
+  # default wait time (spinup / actions)
+  #wait: 300
+  # how many sims to start in parallel
+  #parallel: 1
+
+
+sims:
+- topo: triangle.virl
+  nodes:
+  - name: iosv-1
+    actions:
+    - type: command
+      transport: telnet
+      in:
+      - term len 0
+      - show version
+      - conf t
+      - hostname mychangedname
+      - end
+      - show run
+      out:
+      - ''
