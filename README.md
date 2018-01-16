@@ -4,7 +4,8 @@ This is the README file for the *virltester* tool.
 
 > **Note:** It should run with Python 2 and Python 3 but was mostly tested with Python 3.x.
 
-# Installation
+## Installation
+
 - create a virtual environment
 - activate it
 - clone repository (with proxy, if needed)
@@ -13,12 +14,12 @@ This is the README file for the *virltester* tool.
 
 It's also possible to directly install from Git like here (set the `http_proxy` environment variable only when needed):
 
-```
+```plain
 http_proxy="http://proxy.cisco.com:80" \
 pip install git+http://github.com/virl-open/virl-tester.git
 ```
 
-# Using the Tool
+## Using the Tool
 
 ```plain
 $ virltester --help
@@ -85,25 +86,27 @@ $
 
 Exit status is 0 when all tests were successful or -1 otherwise.
 
-# Basic Smoke Tests
+## Basic Smoke Tests
+
 The Examples directory has a set of files to start with.
 
-- triangle.virl: Used by the test YAML files.
-- iosv.yml: starts the triangle and does a few pings, generates log files
-- pcap.yml: waits for convergence, starts a pcap and pings on two nodes
-- config.yml: shows how to change the configuration of a device
-- include.yml: include other test files into a master test file
+- `triangle.virl`: Used by the test YAML files.
+- `iosv.yml`: Starts the triangle and does a few pings, generates log files
+- `pcap.yml`: Waits for convergence, starts a pcap and pings on two nodes
+- `config.yml`: Shows how to change the configuration of a device
+- `include.yml`: Include other test files into a master test file
 
 These basic examples can be used as a starting point for further, more complex testing.
 
-# YAML Test Definition
+## YAML Test Definition
 
-## Syntax
-The following tries to adhere to ABNF, see [here](https://en.wikipedia.org/wiki/Augmented_Backus%E2%80%93Naur_form) for the Wikipedia reference. 
+### Syntax
+
+The following tries to adhere to ABNF, see [here](https://en.wikipedia.org/wiki/Augmented_Backus%E2%80%93Naur_form) for the Wikipedia reference.
 
 All the repetitions are essentially lists in the YAML whereas the rest is key / value pairs (dictionaries). See the Examples section how it should be rendered in YAML.
 
-```
+```plain
 virltest = [config includes sims]
 config = [host port username password loglevel wait parallel]
 includes = *virltest; include the sims portion of other test files
@@ -127,7 +130,7 @@ wait = int; maximum wait in [s] before it gives up (defaults to global wait)
 
 name = string; either valid nodename in topology or IP address
 actions *(
-  ("command" background [transport log logic username password wait] in out) / 
+  ("command" background [transport log logic username password wait] in out) /
   ("converge") background [transport log logic username password wait] in out) /
   ("filter" background intfc [count bpf wait])
 )
@@ -148,8 +151,10 @@ intfc = string; Name of interface on the node to capture from (mandatory)
 wait = int; how long (seconds) to wait until capture stops (300)
 ```
 
-## Examples
-### Minimal
+### Examples
+
+#### Minimal
+
 The minimal input is the empty file which does... nothing:
 
 empty.yml:
@@ -167,7 +172,7 @@ Output:
 (venv) $
 ```
 
-### Basic IOSv Interaction
+#### Basic IOSv Interaction
 
 This uses Jinja2 to evaluate the host, username and password. If the environment variables are set, then those values are used. If not, then the provided defaults are used. If those lines would not be present, the system would fall back to the built-in defaults.
 
@@ -194,7 +199,8 @@ sims:
       - ''
 ```
 
-## Typical Config Section
+### Typical Config Section
+
 ```yaml
 config:
   # the VIRL host
@@ -212,24 +218,27 @@ config:
   #parallel: 1
 ```
 
-## In/Out for Command/Converge
+### In/Out for Command/Converge
+
 The 'in' list has strings which are sent to the device, line by line. After the last line has been sent, the 'out' list is used to match the output produced by the last command whether it matches any of the given regular expressions in 'out'.
 
 The 'logic' parameter defines whether 'one' or 'all' of the 'out' lines have to match to mark the action as successful or not. It can be negated by prepending it with a '!'. E.g. '!one' means the action fails if one of these lines are present in any of the output lines and '!all' fails the action if all the given lines are found in the output.
 
-## Convergence
+### Convergence
+
 The 'converge' action is similar to the regular 'command' action. But it is used to determine whether the simulation actually has converged (as opposed to all nodes being up and responding on the management interface).
 
 For example, a topology is converged when on a particular node a specific route can be seen in the routing table... That route would only be present when the intermediate nodes are up and forwarding packets, BGP has been established between the peers and the prefix has been announces. So the command can check for that prefix in the routing table.
 
 Only when the 'converge' action has succeeded, the subsequent actions in the action list are executed. For this reason, the 'converge' action should be the first action in the list of actions. However, this is not enforced. If the 'convert' action fails then the subsequent actions in the list will not be attempted.
 
-## Inclusion of other test files
+### Inclusion of other test files
+
 The 'includes' section allows to recursively include other test files into the main test file. Only the 'sims' list of the included files will be appended to the sims of the main test file.
 
 This allows to define the configuration parameters in the main test file and the run the sims. Topology files are then read relative to the included test YAML files if no absolute path is given.
 
-## Sample RegEx 
+### Sample RegEx
 
 ```yaml
 - name: lxc-1
@@ -244,11 +253,12 @@ This allows to define the configuration parameters in the main test file and the
 
 This examples shows how an application (here: NGINX webserver) can be tested. The command connects to a LXC host in the topology, then runs curl to retrieve a web page from the container running NGINX and checks for a specific 'success' string in the 'out' RegEx. Note that there might be a 'sleep' required to allow for the processes to start.
 
-## Incantations
+### Incantations
+
 The below starts the test 10 times and executes all sims in the 'allnodes.yml' test description, redirects every output to 'test.log'.
 
 ```bash
-for i in $(seq 10); do 
+for i in $(seq 10); do
   { time virltester allnodes.yml ;} >>test.log 2>&1
 done
 ```
@@ -261,8 +271,10 @@ Using Jinja, env vars can be included into the YAML files for e.g. hosts, userna
 $ VIRL_HOST=123.45.67.89 virltester -l4 iosv-single-test.yml
 ```
 
-# Miscellaneous
-## Ideas
+## Miscellaneous
+
+### Ideas
+
 - save start time in VIRL object and display a delta time when logging text
 - implement a better action handler (e.g. list of actions mapped to functions)
 - implement sim and action queueing (thread safety??)
@@ -276,14 +288,15 @@ $ VIRL_HOST=123.45.67.89 virltester -l4 iosv-single-test.yml
 - prefix where log files should be written (cmd-line switch)
 - Reset host, e.g. remove all running sims prior to starting tests
 
-## Done
+### Done
+
 - allow interaction with VIRL host node (via e.g. 172.16.1.254 or something that can be retrieved via roster... essentially, it's like a server node but with a different IP and username/password)
 - add getConsole for Sim / node
 - in case of sim not going active/reachable, implement a console fallback to check what's going on on the node
 - use Jinja2 templates to allow env variables and other substitutions in the YAML like "{{ env['VIRL_HOST'] or "localhost" }}"
 - wait until sim has truly stopped option
 - wait until sim has converged based on a given command / sequence of commands
-	- action 'wait to become active' or something
-	- wait until crypto signing check is done on all nodes / load is below threshold on host??
+  - action 'wait to become active' or something
+  - wait until crypto signing check is done on all nodes / load is below threshold on host??
 
 - implement negation of RE (e.g. 'not "100% ping loss"' string) (e.g. by providing "logic: !one" or "logic: !all" statements for action)
