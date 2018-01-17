@@ -19,6 +19,8 @@ http_proxy="http://proxy.cisco.com:80" \
 pip install git+http://github.com/virl-open/virl-tester.git
 ```
 
+There is a Makefile in the directory to create a universal binary wheel that can be copied to target machines. For the Makefile to work, one has to also manually install the 'wheel' package.
+
 ## Using the Tool
 
 ```plain
