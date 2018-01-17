@@ -131,24 +131,25 @@ wait = int; maximum wait in [s] before it gives up (defaults to global wait)
 
 name = string; either valid nodename in topology or IP address
 actions *(
-  ("command" background [transport log logic username password wait] in out) /
-  ("converge") background [transport log logic username password wait] in out) /
-  ("filter" background intfc [count bpf wait])
+  ("command"  in out [background log logic password transport username wait]) /
+  ("converge") in out [background log logic password transport username wait]) /
+  ("filter" intfc [background bpf count wait])
 )
 
-background = bool; should this action run in parallel?
-
-transport = "telnet" / "ssh" (default "telnet")
-logic = ["!"]("one" / "all") (default "one")
 in = *1(string); RegExp
 out = *1(string); RegExp, empty string is valid,
-wait = int; how long to wait [s] for completion, (30)
-username = string; device username ("cisco")
+background = bool; should this action run in parallel?
+log = bool; log this action in a separate logfile
+logic = ["!"]("one" / "all") (default "one")
 password = string; device passwod ("cisco")
+transport = "telnet" / "ssh" (default "telnet")
+username = string; device username ("cisco")
+wait = int; how long to wait [s] for completion, (30)
 
-count = int; Number of packets to capture (20)
-bpf = string; BPF filter to apply ("", e.g. all packets)
 intfc = string; Name of interface on the node to capture from (mandatory)
+background = bool; should this action run in parallel?
+bpf = string; BPF filter to apply ("", e.g. all packets)
+count = int; Number of packets to capture (20)
 wait = int; how long (seconds) to wait until capture stops (300)
 ```
 
